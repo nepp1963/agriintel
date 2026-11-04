@@ -15,4 +15,5 @@ export interface LocationData {
   windSpeed: number;
   cloudCoverPercent: number;
   windDirection: string;
+  zoom: number;
 }

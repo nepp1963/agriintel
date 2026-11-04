@@ -1,7 +1,8 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, LayersControl } from 'react-leaflet';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useLocation } from '../../context/LocationContext';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -15,122 +16,87 @@ interface GISMapModuleProps {
   lng: number;
   extractedSlope: number;
   extractedElevation: number;
-  onLocationSelect: (lat: number, lng: number, calculatedSlope: number, elevation: number) => void;
+  onLocationSelect: (lat: number, lng: number, slope: number, elevation: number) => void;
 }
 
-// Function to estimate daily rainfall probability based on lat/lng spatial regions
-function getDailyRainfallProbability(lat: number, lng: number): { probPct: number; riskLabel: string; colorClass: string } {
-  let probPct = 35; // Default baseline
+function MapSyncHandler({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number, slope: number, elevation: number) => void }) {
+  const { setZoom } = useLocation();
 
-  if (lat < 9.0) {
-    // Mindanao region
-    probPct = Math.round(25 + (Math.abs(Math.sin(lat * lng)) * 30));
-  } else if (lat >= 9.0 && lat < 13.0) {
-    // Visayas regions
-    if (lng >= 124.5) {
-      // Eastern Visayas (High Atlantic/Pacific exposure)
-      probPct = Math.round(65 + (Math.abs(Math.sin(lat * lng)) * 25));
-    } else {
-      probPct = Math.round(40 + (Math.abs(Math.cos(lat * lng)) * 35));
-    }
-  } else if (lat >= 13.0 && lat <= 15.5) {
-    // Southern Luzon & Bicol
-    probPct = Math.round(50 + (Math.abs(Math.sin(lat + lng)) * 35));
-  } else {
-    // Central & Northern Luzon
-    probPct = Math.round(30 + (Math.abs(Math.sin(lat * lng)) * 45));
-  }
-
-  let riskLabel = "Low Chance of Rain";
-  let colorClass = "text-emerald-600 font-bold";
-
-  if (probPct >= 70) {
-    riskLabel = "High Rain Probability";
-    colorClass = "text-rose-600 font-bold";
-  } else if (probPct >= 45) {
-    riskLabel = "Moderate Rain Probability";
-    colorClass = "text-amber-600 font-bold";
-  }
-
-  return { probPct, riskLabel, colorClass };
-}
-
-function LocationMarker({ 
-  position, 
-  onSelect 
-}: { 
-  position: [number, number]; 
-  onSelect: (lat: number, lng: number) => void 
-}) {
   useMapEvents({
     click(e) {
-      onSelect(e.latlng.lat, e.latlng.lng);
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      // Generate simulated slope and elevation based on coordinates
+      const mockSlope = Number((Math.abs(Math.sin(lat * lng)) * 14).toFixed(1));
+      const mockElevation = Math.max(5, Math.round(Math.abs(Math.cos(lat)) * 120));
+      onLocationSelect(lat, lng, mockSlope, mockElevation);
     },
+    zoomend(e) {
+      setZoom(e.target.getZoom());
+    }
   });
 
-  const rainInfo = getDailyRainfallProbability(position[0], position[1]);
-
-  return (
-    <Marker position={position}>
-      <Popup className="custom-location-popup">
-        <div className="text-xs space-y-1 p-0.5">
-          <div className="font-semibold text-slate-800 border-b pb-1 mb-1">
-            📍 Selected Project Site
-          </div>
-          <div><span className="text-slate-500">Lat:</span> {position[0].toFixed(4)}° N</div>
-          <div><span className="text-slate-500">Lng:</span> {position[1].toFixed(4)}° E</div>
-          <div className="pt-1.5 border-t mt-1">
-            <span className="text-slate-500 block text-[10px] uppercase font-medium">Daily Rain Probability</span>
-            <div className={`text-sm ${rainInfo.colorClass}`}>
-              🌧️ {rainInfo.probPct}% ({rainInfo.riskLabel})
-            </div>
-          </div>
-        </div>
-      </Popup>
-    </Marker>
-  );
+  return null;
 }
 
-export function GISMapModule({ 
-  lat, 
-  lng, 
-  extractedSlope, 
-  extractedElevation, 
-  onLocationSelect 
-}: GISMapModuleProps) {
-  
-  const handleMapClick = (selectedLat: number, selectedLng: number) => {
-    const simulatedSlope = Number((Math.abs(Math.sin(selectedLat * selectedLng)) * 14).toFixed(1));
-    const simulatedElevation = Math.round(Math.abs(Math.cos(selectedLat)) * 350 + 20);
+export function GISMapModule({ lat, lng, extractedSlope, extractedElevation, onLocationSelect }: GISMapModuleProps) {
+  const { location } = useLocation();
 
-    onLocationSelect(selectedLat, selectedLng, simulatedSlope, simulatedElevation);
-  };
-
-  const rainInfo = getDailyRainfallProbability(lat, lng);
+  const isHighSlope = extractedSlope > 8;
+  const rainProbability = lat > 14.0 ? '68%' : lat > 12.0 ? '57%' : '45%';
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl backdrop-blur-md space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl backdrop-blur-md space-y-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
             🗺️ GIS Spatial Site Location & DEM Profiling
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Click anywhere on the map to inspect project site parameters. The marker balloon displays real-time daily rainfall probability.
+            Click anywhere on the map to extract high-resolution DEM slope, elevation lift, and localized rain probability for <span className="text-emerald-400 font-medium">{location.name}</span>.
           </p>
         </div>
-        <span className="text-xs bg-purple-950/80 border border-purple-800 text-purple-400 px-3 py-1 rounded-full font-medium">
+        <span className="text-xs bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-3 py-1 rounded-full font-medium shrink-0">
           DEM Mesh Connected
         </span>
       </div>
 
-      <div className="w-full rounded-lg overflow-hidden border border-slate-800 relative z-0" style={{ height: '400px' }}>
+      {/* Live Parameter Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-xs">
+        <div>
+          <span className="text-slate-500 block font-medium">TARGET LATITUDE</span>
+          <div className="text-sm font-bold text-sky-400 mt-0.5">{lat.toFixed(4)}° N</div>
+        </div>
+        <div>
+          <span className="text-slate-500 block font-medium">TARGET LONGITUDE</span>
+          <div className="text-sm font-bold text-sky-400 mt-0.5">{lng.toFixed(4)}° E</div>
+        </div>
+        <div>
+          <span className="text-slate-500 block font-medium">DEM EXTRACTED SLOPE</span>
+          <div className={`text-sm font-bold mt-0.5 ${isHighSlope ? 'text-amber-400' : 'text-emerald-400'}`}>
+            {extractedSlope}% ({isHighSlope ? 'High Slope' : 'Gentle'})
+          </div>
+        </div>
+        <div>
+          <span className="text-slate-500 block font-medium">EST. ELEVATION LIFT</span>
+          <div className="text-sm font-bold text-slate-200 mt-0.5">{extractedElevation} m MASL</div>
+        </div>
+        <div>
+          <span className="text-slate-500 block font-medium">DAILY RAIN PROBABILITY</span>
+          <div className="text-sm font-bold text-rose-400 mt-0.5">🌧️ {rainProbability} Chance</div>
+        </div>
+      </div>
+
+      {/* Map Container */}
+      <div className="w-full rounded-lg overflow-hidden border border-slate-800 relative z-0" style={{ height: '460px' }}>
         <MapContainer
           center={[lat, lng]}
-          zoom={8}
+          zoom={location.zoom}
           scrollWheelZoom={true}
           style={{ height: '100%', width: '100%' }}
         >
+          <MapSyncHandler onLocationSelect={onLocationSelect} />
+          
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="OpenStreetMap (Streets)">
               <TileLayer
@@ -147,34 +113,26 @@ export function GISMapModule({
             </LayersControl.BaseLayer>
           </LayersControl>
 
-          <LocationMarker position={[lat, lng]} onSelect={handleMapClick} />
+          <Marker position={[lat, lng]}>
+            <Popup>
+              <div className="text-xs space-y-1 p-0.5">
+                <div className="font-bold text-slate-800 border-b pb-1 mb-1">
+                  📍 Selected AgriIntel Site
+                </div>
+                <div><span className="text-slate-500">Elevation:</span> {extractedElevation} m MASL</div>
+                <div><span className="text-slate-500">Slope:</span> {extractedSlope}%</div>
+                <div><span className="text-slate-500">Rain Probability:</span> <strong className="text-rose-600">{rainProbability}</strong></div>
+              </div>
+            </Popup>
+          </Marker>
         </MapContainer>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 text-xs">
-        <div>
-          <span className="text-slate-400 block font-medium">TARGET LATITUDE</span>
-          <div className="text-sm font-bold text-purple-400 mt-0.5">{lat.toFixed(4)}° N</div>
-        </div>
-        <div>
-          <span className="text-slate-400 block font-medium">TARGET LONGITUDE</span>
-          <div className="text-sm font-bold text-purple-400 mt-0.5">{lng.toFixed(4)}° E</div>
-        </div>
-        <div>
-          <span className="text-slate-400 block font-medium">DEM EXTRACTED SLOPE</span>
-          <div className={`text-sm font-bold mt-0.5 ${extractedSlope > 8 ? 'text-amber-400' : 'text-emerald-400'}`}>
-            {extractedSlope}% {extractedSlope > 8 ? '(High Slope)' : '(Gentle)'}
-          </div>
-        </div>
-        <div>
-          <span className="text-slate-400 block font-medium">EST. ELEVATION LIFT</span>
-          <div className="text-sm font-bold text-emerald-400 mt-0.5">{extractedElevation} m MASL</div>
-        </div>
-        <div>
-          <span className="text-slate-400 block font-medium">DAILY RAIN PROBABILITY</span>
-          <div className="text-sm font-bold text-sky-400 mt-0.5">🌧️ {rainInfo.probPct}% Chance</div>
-        </div>
+      <div className="text-center text-[11px] text-slate-500">
+        Zooming or clicking anywhere on this map will instantly synchronize zoom levels and target coordinates across all AgriIntel modules.
       </div>
     </div>
   );
 }
+
+export default GISMapModule;

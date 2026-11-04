@@ -15,6 +15,7 @@ import { SoilSalinityModule } from './SoilSalinityModule';
 import { GISMapModule } from './GISMapModule';
 import { WeatherClimateModule } from './WeatherClimateModule';
 import { TyphoonTrackerModule } from './TyphoonTrackerModule';
+import { GeohazardFaultModule } from './GeohazardFaultModule';
 import { useLocation } from '../../context/LocationContext';
 
 ChartJS.register(
@@ -29,7 +30,7 @@ ChartJS.register(
 
 export function IrrigationDashboard() {
   const { location, updateFromCoords } = useLocation();
-  const [activeTab, setActiveTab] = useState<'irrigation' | 'watershed' | 'suitability' | 'salinity' | 'gis' | 'weather' | 'typhoon'>('irrigation');
+  const [activeTab, setActiveTab] = useState<'irrigation' | 'watershed' | 'suitability' | 'salinity' | 'gis' | 'weather' | 'typhoon' | 'geohazard'>('irrigation');
 
   // UI Customization States
   const [themeAccent, setThemeAccent] = useState<'emerald' | 'sky' | 'purple' | 'amber'>('emerald');
@@ -385,6 +386,14 @@ export function IrrigationDashboard() {
                 🌀 PAGASA Typhoon & PAR
               </button>
               <button
+                onClick={() => setActiveTab('geohazard')}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                  activeTab === 'geohazard' ? `${activeTheme.primary} text-white shadow` : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🌋 PHIVOLCS Geohazard & Faults
+              </button>
+              <button
                 onClick={() => setActiveTab('watershed')}
                 className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
                   activeTab === 'watershed' ? `${activeTheme.primary} text-white shadow` : 'text-slate-400 hover:text-slate-200'
@@ -465,6 +474,8 @@ export function IrrigationDashboard() {
           <WeatherClimateModule selectedRegion={selectedRegion} />
         ) : activeTab === 'typhoon' ? (
           <TyphoonTrackerModule selectedRegion={selectedRegion} />
+        ) : activeTab === 'geohazard' ? (
+          <GeohazardFaultModule />
         ) : activeTab === 'watershed' ? (
           <WatershedModule
             catchmentAreaSqKm={catchmentAreaSqKm} setCatchmentAreaSqKm={setCatchmentAreaSqKm}
