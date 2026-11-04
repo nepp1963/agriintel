@@ -1,0 +1,495 @@
+import React, { useState } from 'react';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+} from 'chart.js';
+import { Doughnut, Bar } from 'react-chartjs-2';
+import { WatershedModule } from './WatershedModule';
+import { LandSuitabilityModule } from './LandSuitabilityModule';
+import { SoilSalinityModule } from './SoilSalinityModule';
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title
+);
+
+export function IrrigationDashboard() {
+  const [activeTab, setActiveTab] = useState<'irrigation' | 'watershed' | 'suitability' | 'salinity'>('irrigation');
+
+  // Regional Presets
+  const [selectedRegion, setSelectedRegion] = useState<string>("luzon");
+
+  // Weather Parameters
+  const [temp, setTemp] = useState<number | ''>(31.5);
+  const [humidity, setHumidity] = useState<number | ''>(70);
+  const [windSpeed, setWindSpeed] = useState<number | ''>(2.2);
+  const [solarRad, setSolarRad] = useState<number | ''>(21.0);
+
+  // Crop & Soil Selectors
+  const [selectedCrop, setSelectedCrop] = useState<string>("sugarcane");
+  const [growthStage, setGrowthStage] = useState<string>("mid");
+  const [soilType, setSoilType] = useState<string>("clay_loam");
+
+  // Hydraulics Parameters
+  const [flowRateLps, setFlowRateLps] = useState<number | ''>(5);
+  const [staticHead, setStaticHead] = useState<number | ''>(12);
+  const [pipeLength, setPipeLength] = useState<number | ''>(150);
+  const [pipeDiameterMm, setPipeDiameterMm] = useState<number | ''>(75);
+  const [pumpEfficiency, setPumpEfficiency] = useState<number | ''>(0.65);
+  const [minorLossPercent, setMinorLossPercent] = useState<number | ''>(10);
+  const [operatingPressure, setOperatingPressure] = useState<number | ''>(10);
+
+  // Solar Parameters
+  const [peakSunHours, setPeakSunHours] = useState<number | ''>(5.2);
+  const [safetyFactor, setSafetyFactor] = useState<number | ''>(1.3);
+
+  // Economic Parameters
+  const [dieselPricePHP, setDieselPricePHP] = useState<number | ''>(60);
+  const [annualOpDays, setAnnualOpDays] = useState<number | ''>(240);
+
+  const regionData: Record<string, { name: string; psh: number; temp: number; hum: number; solar: number }> = {
+    luzon: { name: "Luzon (Ilocos & Central Plains)", psh: 5.2, temp: 31.5, hum: 70, solar: 21.0 },
+    visayas: { name: "Visayas (Central & Eastern)", psh: 4.8, temp: 29.5, hum: 78, solar: 19.5 },
+    mindanao: { name: "Mindanao (Northern & SOCCSKSARGEN)", psh: 5.0, temp: 30.0, hum: 75, solar: 20.2 }
+  };
+
+  const cropData: Record<string, { name: string; kc: Record<string, number> }> = {
+    sugarcane: { name: "Sugarcane (Commercial)", kc: { init: 0.40, mid: 1.25, late: 0.75 } },
+    rice: { name: "Lowland Rice (Palay)", kc: { init: 1.05, mid: 1.20, late: 0.90 } },
+    corn: { name: "Yellow Corn (Maize)", kc: { init: 0.40, mid: 1.15, late: 0.60 } },
+    onion: { name: "Red Onion (Granex/Lasso)", kc: { init: 0.70, mid: 1.05, late: 0.75 } },
+    tomato: { name: "Processing Tomato", kc: { init: 0.60, mid: 1.15, late: 0.80 } },
+    cabbage: { name: "Highland Cabbage (Benguet Spec)", kc: { init: 0.50, mid: 1.05, late: 0.90 } }
+  };
+
+  const soilData: Record<string, { name: string; awhc: number }> = {
+    sand: { name: "Sand (Low Retention)", awhc: 60 },
+    sandy_loam: { name: "Sandy Loam", awhc: 110 },
+    clay_loam: { name: "Clay Loam (Balanced)", awhc: 140 },
+    heavy_clay: { name: "Heavy Clay (High Retention)", awhc: 180 }
+  };
+
+  const handleRegionChange = (regionKey: string) => {
+    setSelectedRegion(regionKey);
+    const preset = regionData[regionKey];
+    if (preset) {
+      setPeakSunHours(preset.psh);
+      setTemp(preset.temp);
+      setHumidity(preset.hum);
+      setSolarRad(preset.solar);
+    }
+  };
+
+  const numTemp = typeof temp === 'number' ? temp : 0;
+  const numSolar = typeof solarRad === 'number' ? solarRad : 0;
+  const numFlow = typeof flowRateLps === 'number' ? flowRateLps : 0;
+  const numHead = typeof staticHead === 'number' ? staticHead : 0;
+  const numLen = typeof pipeLength === 'number' ? pipeLength : 0;
+  const numDiam = typeof pipeDiameterMm === 'number' ? pipeDiameterMm : 1;
+  const numEff = typeof pumpEfficiency === 'number' ? pumpEfficiency : 0.5;
+  const numMinorPct = typeof minorLossPercent === 'number' ? minorLossPercent : 0;
+  const numOpPress = typeof operatingPressure === 'number' ? operatingPressure : 0;
+  const numPSH = typeof peakSunHours === 'number' && peakSunHours > 0 ? peakSunHours : 5;
+  const numSafety = typeof safetyFactor === 'number' ? safetyFactor : 1.25;
+  const numDieselPrice = typeof dieselPricePHP === 'number' ? dieselPricePHP : 60;
+  const numOpDays = typeof annualOpDays === 'number' ? annualOpDays : 240;
+
+  const activeKc = cropData[selectedCrop]?.kc[growthStage] || 1.20;
+  const activeAwhc = soilData[soilType]?.awhc || 140;
+
+  const refEt0 = (numTemp * 0.23 + numSolar * 0.1).toFixed(2);
+  const cropDemand = (Number(refEt0) * activeKc).toFixed(2);
+  
+  const frictionLossNum = (numFlow * numLen) / (numDiam * 100);
+  const minorLossesNum = frictionLossNum * (numMinorPct / 100);
+  const totalHeadNum = numHead + frictionLossNum + minorLossesNum + numOpPress;
+  
+  const motorPowerKw = (numFlow * totalHeadNum * 9.81) / (10 * numEff * 1000);
+  const requiredPvKw = motorPowerKw * numSafety;
+  const recommendedPanelCount = Math.ceil((requiredPvKw * 1000) / 550); 
+  const dailyWaterVolumeM3 = numFlow * 3600 * numPSH / 1000; 
+
+  const dailyEnergyKwh = motorPowerKw * numPSH;
+  const dailyDieselLitres = dailyEnergyKwh * 0.35; 
+  const annualDieselSavedLitres = dailyDieselLitres * numOpDays;
+  const annualSavingsPHP = annualDieselSavedLitres * numDieselPrice;
+  const annualCo2Kg = annualDieselSavedLitres * 2.68;
+
+  const handleExportCSV = () => {
+    const csvRows = [
+      ["Parameter", "Value", "Unit"],
+      ["Region Preset", regionData[selectedRegion].name, ""],
+      ["Temperature", numTemp, "°C"],
+      ["Solar Radiation", numSolar, "MJ/m²/day"],
+      ["Target Crop", cropData[selectedCrop].name, ""],
+      ["Phenological Stage", growthStage, `Kc: ${activeKc}`],
+      ["Soil Profile", soilData[soilType].name, `AWHC: ${activeAwhc} mm/m`],
+      ["Flow Rate", numFlow, "L/s"],
+      ["Static Lift", numHead, "m"],
+      ["Pipe Length", numLen, "m"],
+      ["Pipe Diameter", numDiam, "mm"],
+      ["Minor Loss", numMinorPct, "%"],
+      ["Operating Pressure", numOpPress, "m"],
+      ["Pump Efficiency", numEff, ""],
+      ["Peak Sun Hours", numPSH, "hours"],
+      ["Solar Derate Factor", numSafety, ""],
+      ["Crop Water Demand (ETc)", cropDemand, "mm/day"],
+      ["Total Dynamic Head (TDH)", totalHeadNum.toFixed(2), "m"],
+      ["Required PV Capacity", requiredPvKw.toFixed(2), "kWp"],
+      ["Recommended Panels (~550W)", recommendedPanelCount, "units"],
+      ["Daily Pumping Yield", dailyWaterVolumeM3.toFixed(1), "m³/day"],
+      ["Annual Fuel Savings", Math.round(annualSavingsPHP), "PHP"],
+      ["Annual CO2 Offset", (annualCo2Kg / 1000).toFixed(2), "tonnes"]
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `AgriIntelPH_Irrigation_Report_${selectedRegion}_${selectedCrop}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const tdhDoughnutData = {
+    labels: ['Static Lift (m)', 'Friction Loss (m)', 'Minor Losses (m)', 'Operating Pressure (m)'],
+    datasets: [{
+      data: [numHead, Number(frictionLossNum.toFixed(2)), Number(minorLossesNum.toFixed(2)), numOpPress],
+      backgroundColor: ['#64748b', '#f59e0b', '#fbbf24', '#38bdf8'],
+      borderColor: '#0f172a',
+      borderWidth: 2,
+    }],
+  };
+
+  const hourlyYieldLabels = ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'];
+  const hourlyYieldFactors = [0.3, 0.6, 0.85, 1.0, 1.0, 0.95, 0.8, 0.55, 0.25];
+  const totalFactorSum = hourlyYieldFactors.reduce((a, b) => a + b, 0);
+  const hourlyWaterData = hourlyYieldFactors.map(factor => Number(((dailyWaterVolumeM3 * factor) / totalFactorSum).toFixed(1)));
+
+  const solarBarData = {
+    labels: hourlyYieldLabels,
+    datasets: [{
+      label: 'Hourly Yield (m³)',
+      data: hourlyWaterData,
+      backgroundColor: '#10b981',
+      borderRadius: 6,
+    }],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { size: 11 } } }
+    }
+  };
+
+  const t = {
+    card: "bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl backdrop-blur-md",
+    input: "bg-slate-950/80 border-slate-800 text-slate-100 placeholder-slate-600 focus:border-emerald-500 focus:ring-emerald-500/20",
+    select: "bg-slate-950/80 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:border-emerald-500",
+    label: "text-xs font-medium text-slate-400 mb-1 block",
+    header: "text-lg font-semibold text-slate-100 flex items-center gap-2 mb-4"
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Top Header Bar with 4-Tab Navigation */}
+        <div className="flex flex-col xl:flex-row justify-between items-center bg-slate-900/40 border border-slate-800/80 px-4 py-3 rounded-lg gap-3 print:hidden">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
+              AgriIntelPH Suite Active
+            </span>
+            <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 flex-wrap">
+              <button
+                onClick={() => setActiveTab('irrigation')}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                  activeTab === 'irrigation' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🌱 SPIS Irrigation
+              </button>
+              <button
+                onClick={() => setActiveTab('watershed')}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                  activeTab === 'watershed' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                ⛰️ Watershed (NRCS CN)
+              </button>
+              <button
+                onClick={() => setActiveTab('suitability')}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                  activeTab === 'suitability' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🗺️ Land Suitability
+              </button>
+              <button
+                onClick={() => setActiveTab('salinity')}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                  activeTab === 'salinity' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🧂 Soil Salinity & Leaching
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {activeTab === 'irrigation' && (
+              <button 
+                onClick={handleExportCSV}
+                className="text-xs bg-emerald-900/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer print:hidden flex items-center gap-1.5"
+              >
+                📥 Export CSV
+              </button>
+            )}
+            <button 
+              onClick={() => window.print()}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer print:hidden"
+            >
+              🖨️ Print / Executive Dossier
+            </button>
+            <div className="text-sm font-semibold tracking-wider text-emerald-400">
+              AgriIntel<span className="text-slate-100">PH</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Print-Only Executive Dossier Header */}
+        <div className="hidden print:block mb-8 border-b border-slate-700 pb-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">AgriIntelPH Executive Engineering Dossier</h1>
+              <p className="text-sm text-slate-600 mt-1">Republic of the Philippines — Multi-Module Agricultural & Environmental Intelligence Suite</p>
+            </div>
+            <div className="text-right text-xs text-slate-500">
+              <div>Date: {new Date().toLocaleDateString()}</div>
+              <div>Status: Verified Technical Report</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Switcher Rendering */}
+        {activeTab === 'watershed' ? (
+          <WatershedModule />
+        ) : activeTab === 'suitability' ? (
+          <LandSuitabilityModule />
+        ) : activeTab === 'salinity' ? (
+          <SoilSalinityModule />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:grid-cols-2">
+              
+              <div className={t.card}>
+                <h2 className={t.header}>🌱 Regional Climate & Crops</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className={t.label}>PHILIPPINE REGION PRESET</label>
+                    <select value={selectedRegion} onChange={e => handleRegionChange(e.target.value)} className={`w-full ${t.select} print:bg-white print:text-black print:border-gray-300`}>
+                      <option value="luzon">Luzon (Ilocos & Central Plains)</option>
+                      <option value="visayas">Visayas (Central & Eastern)</option>
+                      <option value="mindanao">Mindanao (Northern & SOCCSKSARGEN)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={t.label}>TEMP (°C)</label>
+                      <input type="number" value={temp} onChange={e => setTemp(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                    </div>
+                    <div>
+                      <label className={t.label}>SOLAR (MJ)</label>
+                      <input type="number" value={solarRad} onChange={e => setSolarRad(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={t.label}>TARGET CROP PROFILE</label>
+                    <select value={selectedCrop} onChange={e => setSelectedCrop(e.target.value)} className={`w-full ${t.select} print:bg-white print:text-black`}>
+                      <option value="sugarcane">Sugarcane (Commercial)</option>
+                      <option value="rice">Lowland Rice (Palay)</option>
+                      <option value="corn">Yellow Corn (Maize)</option>
+                      <option value="onion">Red Onion (Granex/Lasso)</option>
+                      <option value="tomato">Processing Tomato</option>
+                      <option value="cabbage">Highland Cabbage (Benguet Spec)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={t.label}>PHENOLOGICAL STAGE (Kc)</label>
+                    <select value={growthStage} onChange={e => setGrowthStage(e.target.value)} className={`w-full ${t.select} print:bg-white print:text-black`}>
+                      <option value="init">Initial Stage (Kc: {cropData[selectedCrop].kc.init})</option>
+                      <option value="mid">Mid-Season Stage (Kc: {cropData[selectedCrop].kc.mid})</option>
+                      <option value="late">Late-Season Stage (Kc: {cropData[selectedCrop].kc.late})</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={t.label}>SOIL PROFILE & TEXTURE</label>
+                    <select value={soilType} onChange={e => setSoilType(e.target.value)} className={`w-full ${t.select} print:bg-white print:text-black`}>
+                      <option value="sand">Sand (AWHC: 60 mm/m)</option>
+                      <option value="sandy_loam">Sandy Loam (AWHC: 110 mm/m)</option>
+                      <option value="clay_loam">Clay Loam (AWHC: 140 mm/m)</option>
+                      <option value="heavy_clay">Heavy Clay (AWHC: 180 mm/m)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className={t.card}>
+                <h2 className={t.header}>💧 Advanced Hydraulics</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={t.label}>FLOW (L/S)</label>
+                    <input type="number" value={flowRateLps} onChange={e => setFlowRateLps(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>STATIC LIFT (M)</label>
+                    <input type="number" value={staticHead} onChange={e => setStaticHead(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>LENGTH (M)</label>
+                    <input type="number" value={pipeLength} onChange={e => setPipeLength(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>DIAM (MM)</label>
+                    <input type="number" value={pipeDiameterMm} onChange={e => setPipeDiameterMm(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>MINOR LOSS (%)</label>
+                    <input type="number" value={minorLossPercent} onChange={e => setMinorLossPercent(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>OP. PRESS (M)</label>
+                    <input type="number" value={operatingPressure} onChange={e => setOperatingPressure(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className={t.label}>PUMP EFFICIENCY</label>
+                  <input type="number" step="0.05" min="0.1" max="1.0" value={pumpEfficiency} onChange={e => setPumpEfficiency(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                </div>
+              </div>
+
+              <div className={t.card}>
+                <h2 className={t.header}>☀️ Solar Sizing</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className={t.label}>PEAK SUN HOURS (PSH)</label>
+                    <input type="number" step="0.1" value={peakSunHours} onChange={e => setPeakSunHours(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>SOLAR DERATE FACTOR</label>
+                    <input type="number" step="0.05" value={safetyFactor} onChange={e => setSafetyFactor(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div className="bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60 print:bg-gray-100">
+                    <span className="text-[10px] text-slate-400 block font-medium print:text-gray-600">DAILY YIELD</span>
+                    <div className="text-lg font-bold text-emerald-400 mt-0.5 print:text-emerald-700">{dailyWaterVolumeM3.toFixed(1)} <span className="text-[10px] font-normal text-slate-400 print:text-gray-500">m³/day</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={t.card}>
+                <h2 className={t.header}>💰 Economics</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className={t.label}>DIESEL PRICE (₱/L)</label>
+                    <input type="number" value={dieselPricePHP} onChange={e => setDieselPricePHP(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div>
+                    <label className={t.label}>ANNUAL OP. DAYS</label>
+                    <input type="number" value={annualOpDays} onChange={e => setAnnualOpDays(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 transition-all ${t.input} print:bg-white print:text-black`} />
+                  </div>
+                  <div className="bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60 print:bg-gray-100">
+                    <span className="text-[10px] text-slate-400 block font-medium print:text-gray-600">EST. DIESEL SAVED</span>
+                    <div className="text-lg font-bold text-amber-400 mt-0.5 print:text-amber-700">{dailyDieselLitres.toFixed(1)} <span className="text-[10px] font-normal text-slate-400 print:text-gray-500">L/day</span></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:hidden">
+              <div className={t.card}>
+                <h2 className={t.header}>📈 Total Dynamic Head (TDH) Breakdown</h2>
+                <div className="h-64 flex justify-center items-center">
+                  <Doughnut data={tdhDoughnutData} options={chartOptions} />
+                </div>
+              </div>
+              <div className={t.card}>
+                <h2 className={t.header}>☀️ Estimated Daily Pumping Yield Curve</h2>
+                <div className="h-64">
+                  <Bar data={solarBarData} options={chartOptions} />
+                </div>
+              </div>
+            </div>
+
+            <div className={t.card}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2 print:text-slate-900">📊 Comprehensive Agronomic & Engineering Outputs</h2>
+                <span className="text-xs bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-3 py-1 rounded-full font-medium print:hidden">Full Suite Active</span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl print:bg-gray-50 print:border-gray-300">
+                  <span className="text-[11px] text-slate-400 block font-medium print:text-gray-600">CROP DEMAND (ETc)</span>
+                  <div className="text-2xl font-bold text-emerald-400 mt-1 print:text-emerald-700">{cropDemand} <span className="text-xs font-normal text-slate-400 print:text-gray-500">mm/day</span></div>
+                  <span className="text-[10px] text-slate-500 mt-1 block print:text-gray-500">Active Kc: {activeKc} ({cropData[selectedCrop].name})</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl print:bg-gray-50 print:border-gray-300">
+                  <span className="text-[11px] text-slate-400 block font-medium print:text-gray-600">SOIL WATER CAPACITY</span>
+                  <div className="text-2xl font-bold text-sky-400 mt-1 print:text-sky-700">{activeAwhc} <span className="text-xs font-normal text-slate-400 print:text-gray-500">mm/m</span></div>
+                  <span className="text-[10px] text-slate-500 mt-1 block print:text-gray-500">{soilData[soilType].name}</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl print:bg-gray-50 print:border-gray-300">
+                  <span className="text-[11px] text-slate-400 block font-medium print:text-gray-600">REQUIRED PV CAPACITY</span>
+                  <div className="text-2xl font-bold text-amber-400 mt-1 print:text-amber-700">{requiredPvKw.toFixed(2)} <span className="text-xs font-normal text-slate-400 print:text-gray-500">kWp</span></div>
+                  <span className="text-[10px] text-slate-500 mt-1 block print:text-gray-500">~{recommendedPanelCount} panels (550W spec)</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl print:bg-gray-50 print:border-gray-300">
+                  <span className="text-[11px] text-slate-400 block font-medium print:text-gray-600">ANNUAL FUEL SAVINGS</span>
+                  <div className="text-2xl font-bold text-emerald-400 mt-1 print:text-emerald-700">₱{Math.round(annualSavingsPHP).toLocaleString()}</div>
+                  <span className="text-[10px] text-slate-500 mt-1 block print:text-gray-500">{(annualCo2Kg / 1000).toFixed(2)} tonnes CO₂ offset</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Print-Only Engineer Sign-Off Section */}
+        <div className="hidden print:grid grid-cols-2 gap-12 mt-16 pt-8 border-t border-slate-300 text-xs text-slate-800">
+          <div>
+            <div className="font-bold mb-8">Prepared By:</div>
+            <div className="border-t border-slate-400 pt-2 w-64">
+              <div>Agricultural Systems Engineer</div>
+              <div className="text-slate-500">Project Technical Lead</div>
+            </div>
+          </div>
+          <div>
+            <div className="font-bold mb-8">Approved By (Regional Bureau):</div>
+            <div className="border-t border-slate-400 pt-2 w-64">
+              <div>Director / Supervising Engineer</div>
+              <div className="text-slate-500">AgriIntelPH Technical Review Board</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
