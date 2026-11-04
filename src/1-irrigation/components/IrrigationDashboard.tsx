@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -9,13 +9,13 @@ import {
   BarElement,
   Title,
 } from 'chart.js';
-import { Doughnut, Bar } from 'react-chartjs-2';
 import { WatershedModule } from './WatershedModule';
 import { LandSuitabilityModule } from './LandSuitabilityModule';
 import { SoilSalinityModule } from './SoilSalinityModule';
 import { GISMapModule } from './GISMapModule';
 import { WeatherClimateModule } from './WeatherClimateModule';
 import { TyphoonTrackerModule } from './TyphoonTrackerModule';
+import { useLocation } from '../../context/LocationContext';
 
 ChartJS.register(
   ArcElement,
@@ -28,25 +28,26 @@ ChartJS.register(
 );
 
 export function IrrigationDashboard() {
+  const { location, updateFromCoords } = useLocation();
   const [activeTab, setActiveTab] = useState<'irrigation' | 'watershed' | 'suitability' | 'salinity' | 'gis' | 'weather' | 'typhoon'>('irrigation');
 
   // UI Customization States
   const [themeAccent, setThemeAccent] = useState<'emerald' | 'sky' | 'purple' | 'amber'>('emerald');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
-  // Persistent GIS Coordinates (Default: Laguna / Southern Luzon)
-  const [gisLat, setGisLat] = useState<number>(14.1648);
-  const [gisLng, setGisLng] = useState<number>(121.2413);
-  const [extractedElevation, setExtractedElevation] = useState<number>(85);
+  // Persistent GIS Coordinates (Synced with Global LocationContext)
+  const [gisLat, setGisLat] = useState<number>(location.lat);
+  const [gisLng, setGisLng] = useState<number>(location.lng);
+  const [extractedElevation, setExtractedElevation] = useState<number>(location.elevation);
 
   // Regional Presets
-  const [selectedRegion, setSelectedRegion] = useState<string>("luzon");
+  const [selectedRegion, setSelectedRegion] = useState<string>("southern_luzon");
 
   // Weather Parameters
-  const [temp, setTemp] = useState<number | ''>(31.5);
-  const [humidity, setHumidity] = useState<number | ''>(70);
-  const [windSpeed, setWindSpeed] = useState<number | ''>(2.2);
-  const [solarRad, setSolarRad] = useState<number | ''>(21.0);
+  const [temp, setTemp] = useState<number | ''>(location.tempMax);
+  const [humidity, setHumidity] = useState<number | ''>(location.humidity);
+  const [windSpeed, setWindSpeed] = useState<number | ''>(location.windSpeed);
+  const [solarRad, setSolarRad] = useState<number | ''>(location.solarRad);
 
   // Crop & Soil Selectors
   const [selectedCrop, setSelectedCrop] = useState<string>("lowland_rice");
@@ -69,7 +70,7 @@ export function IrrigationDashboard() {
   const [peakSunHours, setPeakSunHours] = useState<number | ''>(5.2);
   const [safetyFactor, setSafetyFactor] = useState<number | ''>(1.3);
   const [panelWattage, setPanelWattage] = useState<number>(350);
-  const [systemVoltage, setSystemVoltage] = useState<number>(48); 
+  const [systemVoltage, setSystemVoltage] = useState<number>(48);
   const [batteryAutonomyRatio, setBatteryAutonomyRatio] = useState<number>(0.5);
 
   // Economic Parameters
@@ -79,7 +80,7 @@ export function IrrigationDashboard() {
   // Cross-Module States
   const [catchmentAreaSqKm, setCatchmentAreaSqKm] = useState<number | ''>(12.5);
   const [rainfallMm, setRainfallMm] = useState<number | ''>(2400);
-  const [curveNumber, setCurveNumber] = useState<number | ''>(78);
+  const [curveNumber, setCurveNumber] = useState<number | ''>(location.defaultCurveNumber);
   const [flowLengthKm, setFlowLengthKm] = useState<number | ''>(6.2);
   const [elevationDropM, setElevationDropM] = useState<number | ''>(350);
 
@@ -130,6 +131,24 @@ export function IrrigationDashboard() {
     drip: { name: "Drip Irrigation (90% Eff)", efficiency: 0.90 }
   };
 
+  // Synchronize local states whenever global LocationContext changes
+  useEffect(() => {
+    setGisLat(location.lat);
+    setGisLng(location.lng);
+    setExtractedElevation(location.elevation);
+    setTemp(location.tempMax);
+    setHumidity(location.humidity);
+    setWindSpeed(location.windSpeed);
+    setSolarRad(location.solarRad);
+    setCurveNumber(location.defaultCurveNumber);
+
+    if (location.region.includes('MIMAROPA')) setSelectedRegion('mimaropa');
+    else if (location.region.includes('Central & Northern Luzon')) setSelectedRegion('luzon');
+    else if (location.region.includes('CALABARZON') || location.region.includes('Bicol')) setSelectedRegion('southern_luzon');
+    else if (location.region.includes('Visayas')) setSelectedRegion('visayas_central');
+    else setSelectedRegion('mindanao_davao');
+  }, [location]);
+
   const handleRegionChange = (regionKey: string) => {
     setSelectedRegion(regionKey);
     const preset = regionData[regionKey];
@@ -142,39 +161,21 @@ export function IrrigationDashboard() {
   };
 
   const handleGISLocationSelect = (lat: number, lng: number, slope: number, elevation: number) => {
-    setGisLat(lat);
-    setGisLng(lng);
-    setExtractedElevation(elevation);
     setSlopePercent(slope);
     setStaticHead(Math.min(elevation, 50));
+    updateFromCoords(lat, lng);
 
     let matchedRegion = "luzon";
-    if (lat < 9.0) {
-      if (lng < 123.5) {
-        matchedRegion = "mindanao_zamboanga";
-      } else if (lat < 7.0 && lng >= 124.0 && lng <= 125.5) {
-        matchedRegion = "mindanao_soccsksargen";
-      } else if (lng >= 125.5) {
-        matchedRegion = "mindanao_davao";
-      } else if (lat >= 7.8 && lng >= 124.0 && lng <= 125.5) {
-        matchedRegion = "mindanao_north";
-      } else {
-        matchedRegion = "mindanao_barmm_caraga";
-      }
-    } else if (lat >= 9.0 && lat < 13.5 && lng < 121.5) {
-      matchedRegion = "mimaropa";
-    } else if (lat >= 9.0 && lat < 13.0) {
-      if (lng < 123.0) {
-        matchedRegion = "visayas_western";
-      } else if (lng >= 123.0 && lng < 124.5) {
-        matchedRegion = "visayas_central";
-      } else {
-        matchedRegion = "visayas_eastern";
-      }
-    } else if (lat >= 13.0 && lat <= 15.5) {
-      matchedRegion = "southern_luzon";
-    } else {
+    if (lat >= 14.5) {
       matchedRegion = "luzon";
+    } else if (lat >= 13.0 && lat < 14.5) {
+      matchedRegion = "southern_luzon";
+    } else if (lat >= 9.0 && lat < 13.5 && lng < 122.0) {
+      matchedRegion = "mimaropa";
+    } else if (lat >= 9.0 && lat < 11.5) {
+      matchedRegion = "visayas_central";
+    } else {
+      matchedRegion = "mindanao_davao";
     }
 
     setSelectedRegion(matchedRegion);
@@ -206,11 +207,11 @@ export function IrrigationDashboard() {
   const activeMethodEfficiency = irrigationMethodData[irrigationMethod]?.efficiency || 0.85;
 
   const baseEt0 = numTemp * 0.23 + numSolar * 0.1;
-  
+
   const ecIw = typeof ecIrrigation === 'number' ? ecIrrigation : 0;
   const ecT = typeof ecThreshold === 'number' ? ecThreshold : 1.5;
   const rawLR = (ecIw / (5 * ecT - ecIw)) * 100;
-  const safeLR = rawLR > 0 ? rawLR : 5.0; 
+  const safeLR = rawLR > 0 ? rawLR : 5.0;
   const leachingMultiplier = 1 + (safeLR / 100);
 
   const netCropDemand = baseEt0 * activeKc * leachingMultiplier;
@@ -234,11 +235,11 @@ export function IrrigationDashboard() {
   const frictionLossNum = (numFlow * numLen) / (numDiam * 100);
   const minorLossesNum = frictionLossNum * (numMinorPct / 100);
   const totalHeadNum = numHead + frictionLossNum + minorLossesNum + numOpPress;
-  
+
   const motorPowerKw = (numFlow * totalHeadNum * 9.81) / (10 * numEff * 1000);
   const requiredPvKw = motorPowerKw * numSafety;
-  const recommendedPanelCount = Math.ceil((requiredPvKw * 1000) / panelWattage); 
-  
+  const recommendedPanelCount = Math.ceil((requiredPvKw * 1000) / panelWattage);
+
   const totalPvWatts = recommendedPanelCount * panelWattage;
   const recommendedSccAmps = Math.ceil((totalPvWatts / systemVoltage) * 1.25);
   const recommendedInverterKw = Math.max(motorPowerKw * 1.5, requiredPvKw).toFixed(2);
@@ -247,8 +248,8 @@ export function IrrigationDashboard() {
   const requiredBatteryAh = (dailyEnergyWattHours * batteryAutonomyRatio) / (systemVoltage * 0.8);
   const battery100AhUnits = Math.ceil(requiredBatteryAh / 100);
 
-  const dailyWaterVolumeM3 = numFlow * 3600 * numPSH / 1000; 
-  const dailyDieselLitres = (motorPowerKw * numPSH) * 0.35; 
+  const dailyWaterVolumeM3 = numFlow * 3600 * numPSH / 1000;
+  const dailyDieselLitres = (motorPowerKw * numPSH) * 0.35;
   const annualSavingsPHP = dailyDieselLitres * numOpDays * numDieselPrice;
   const annualCo2Kg = dailyDieselLitres * numOpDays * 2.68;
 
@@ -274,7 +275,7 @@ export function IrrigationDashboard() {
   const handleExportCSV = () => {
     const csvRows = [
       ["Parameter", "Value", "Unit"],
-      ["Region Preset", regionData[selectedRegion].name, ""],
+      ["Region Preset", regionData[selectedRegion]?.name || location.name, ""],
       ["Irrigation Method", irrigationMethodData[irrigationMethod].name, `Efficiency: ${activeMethodEfficiency * 100}%`],
       ["Temperature", numTemp, "°C"],
       ["Solar Radiation", numSolar, "MJ/m²/day"],
@@ -315,43 +316,10 @@ export function IrrigationDashboard() {
     document.body.removeChild(link);
   };
 
-  const tdhDoughnutData = {
-    labels: ['Static Lift (m)', 'Friction Loss (m)', 'Minor Losses (m)', 'Operating Pressure (m)'],
-    datasets: [{
-      data: [numHead, Number(frictionLossNum.toFixed(2)), Number(minorLossesNum.toFixed(2)), numOpPress],
-      backgroundColor: ['#64748b', '#f59e0b', '#fbbf24', '#38bdf8'],
-      borderColor: isDarkMode ? '#0f172a' : '#ffffff',
-      borderWidth: 2,
-    }],
-  };
-
-  const hourlyYieldLabels = ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'];
-  const hourlyYieldFactors = [0.3, 0.6, 0.85, 1.0, 1.0, 0.95, 0.8, 0.55, 0.25];
-  const totalFactorSum = hourlyYieldFactors.reduce((a, b) => a + b, 0);
-  const hourlyWaterData = hourlyYieldFactors.map(factor => Number(((dailyWaterVolumeM3 * factor) / totalFactorSum).toFixed(1)));
-
-  const solarBarData = {
-    labels: hourlyYieldLabels,
-    datasets: [{
-      label: 'Hourly Yield (m³)',
-      data: hourlyWaterData,
-      backgroundColor: themeAccent === 'emerald' ? '#10b981' : themeAccent === 'sky' ? '#0ea5e9' : themeAccent === 'purple' ? '#a855f7' : '#f59e0b',
-      borderRadius: 6,
-    }],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { labels: { color: isDarkMode ? '#94a3b8' : '#475569', font: { size: 11 } } }
-    }
-  };
-
   return (
     <div className={t.container}>
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Top Navigation Bar */}
         <div className={`flex flex-col xl:flex-row justify-between items-center ${t.navBar} print:hidden`}>
           <div className="flex items-center gap-3 flex-wrap">
@@ -359,7 +327,7 @@ export function IrrigationDashboard() {
               AgriIntel Core Engine
             </span>
 
-            {/* Lovable-Style Theme Accent & Light/Dark Mode Switcher */}
+            {/* Theme Accent & Light/Dark Mode Switcher */}
             <div className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-lg border border-slate-700 text-xs">
               <span className="text-slate-400 font-medium px-1">Theme:</span>
               <button onClick={() => setThemeAccent('emerald')} className={`w-4 h-4 rounded-full bg-emerald-500 transition-transform ${themeAccent === 'emerald' ? 'scale-125 ring-2 ring-white' : 'opacity-70'}`} title="Emerald Green" />
@@ -369,14 +337,14 @@ export function IrrigationDashboard() {
 
               <div className="h-4 w-px bg-slate-700 mx-1" />
 
-              <button 
-                onClick={() => setIsDarkMode(true)} 
+              <button
+                onClick={() => setIsDarkMode(true)}
                 className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${isDarkMode ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 🌙 Dark
               </button>
-              <button 
-                onClick={() => setIsDarkMode(false)} 
+              <button
+                onClick={() => setIsDarkMode(false)}
                 className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${!isDarkMode ? 'bg-slate-200 text-slate-900' : 'text-slate-400 hover:text-white'}`}
               >
                 ☀️ Light
@@ -442,17 +410,17 @@ export function IrrigationDashboard() {
               </button>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {activeTab === 'irrigation' && (
-              <button 
+              <button
                 onClick={handleExportCSV}
                 className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer print:hidden flex items-center gap-1.5"
               >
                 📥 Export CSV
               </button>
             )}
-            <button 
+            <button
               onClick={() => window.print()}
               className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer print:hidden"
             >
@@ -486,19 +454,19 @@ export function IrrigationDashboard() {
 
         {/* Dynamic Tab Views */}
         {activeTab === 'gis' ? (
-          <GISMapModule 
+          <GISMapModule
             lat={gisLat}
             lng={gisLng}
             extractedSlope={typeof slopePercent === 'number' ? slopePercent : 6.5}
             extractedElevation={extractedElevation}
-            onLocationSelect={handleGISLocationSelect} 
+            onLocationSelect={handleGISLocationSelect}
           />
         ) : activeTab === 'weather' ? (
           <WeatherClimateModule selectedRegion={selectedRegion} />
         ) : activeTab === 'typhoon' ? (
           <TyphoonTrackerModule selectedRegion={selectedRegion} />
         ) : activeTab === 'watershed' ? (
-          <WatershedModule 
+          <WatershedModule
             catchmentAreaSqKm={catchmentAreaSqKm} setCatchmentAreaSqKm={setCatchmentAreaSqKm}
             rainfallMm={rainfallMm} setRainfallMm={setRainfallMm}
             curveNumber={curveNumber} setCurveNumber={setCurveNumber}
@@ -506,7 +474,7 @@ export function IrrigationDashboard() {
             elevationDropM={elevationDropM} setElevationDropM={setElevationDropM}
           />
         ) : activeTab === 'suitability' ? (
-          <LandSuitabilityModule 
+          <LandSuitabilityModule
             selectedCrop={selectedCrop} setSelectedCrop={setSelectedCrop}
             slopePercent={slopePercent} setSlopePercent={setSlopePercent}
             soilDepthCm={soilDepthCm} setSoilDepthCm={setSoilDepthCm}
@@ -514,7 +482,7 @@ export function IrrigationDashboard() {
             drainageClass={drainageClass} setDrainageClass={setDrainageClass}
           />
         ) : activeTab === 'salinity' ? (
-          <SoilSalinityModule 
+          <SoilSalinityModule
             ecIrrigation={ecIrrigation} setEcIrrigation={setEcIrrigation}
             ecThreshold={ecThreshold} setEcThreshold={setEcThreshold}
             targetLeachingEfficiency={targetLeachingEfficiency} setTargetLeachingEfficiency={setTargetLeachingEfficiency}
@@ -523,25 +491,15 @@ export function IrrigationDashboard() {
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:grid-cols-2">
-              
+
               <div className={t.card}>
                 <h2 className={t.header}>🌱 Regional Climate & Crops</h2>
                 <div className="space-y-3">
                   <div>
-                    <label className={t.label}>REGION PRESET</label>
-                    <select value={selectedRegion} onChange={e => handleRegionChange(e.target.value)} className={`${t.select} w-full truncate`}>
-                      <option value="luzon">Central & Northern Luzon</option>
-                      <option value="southern_luzon">Southern Luzon (CALABARZON/Bicol)</option>
-                      <option value="mimaropa">MIMAROPA Region (Region IV-B)</option>
-                      <option value="visayas_western">Western Visayas (Region VI - Panay/Negros)</option>
-                      <option value="visayas_central">Central Visayas (Region VII - Cebu/Bohol)</option>
-                      <option value="visayas_eastern">Eastern Visayas (Region VIII - Samar/Leyte)</option>
-                      <option value="mindanao_north">Northern Mindanao (Region X)</option>
-                      <option value="mindanao_davao">Davao Region (Region XI)</option>
-                      <option value="mindanao_soccsksargen">SOCCSKSARGEN (Region XII)</option>
-                      <option value="mindanao_zamboanga">Zamboanga Peninsula (Region IX)</option>
-                      <option value="mindanao_barmm_caraga">BARMM & Caraga Regions</option>
-                    </select>
+                    <label className={t.label}>ACTIVE SITE & REGION</label>
+                    <div className="text-xs font-semibold text-emerald-400 bg-slate-950 p-2 rounded-lg border border-slate-800 truncate">
+                      {location.name}
+                    </div>
                   </div>
 
                   <div>
@@ -602,153 +560,97 @@ export function IrrigationDashboard() {
                       <option value="drip">Drip Irrigation (90% Eff)</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={t.label}>FLOW (L/S)</label>
+                      <label className={t.label}>FLOW RATE (L/s)</label>
                       <input type="number" value={flowRateLps} onChange={e => setFlowRateLps(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                     </div>
                     <div>
-                      <label className={t.label}>STATIC LIFT (M)</label>
+                      <label className={t.label}>STATIC LIFT (m)</label>
                       <input type="number" value={staticHead} onChange={e => setStaticHead(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={t.label}>LENGTH (M)</label>
+                      <label className={t.label}>PIPE LENGTH (m)</label>
                       <input type="number" value={pipeLength} onChange={e => setPipeLength(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                     </div>
                     <div>
-                      <label className={t.label}>DIAM (MM)</label>
+                      <label className={t.label}>DIAMETER (mm)</label>
                       <input type="number" value={pipeDiameterMm} onChange={e => setPipeDiameterMm(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={t.label}>MINOR LOSS (%)</label>
-                      <input type="number" value={minorLossPercent} onChange={e => setMinorLossPercent(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
-                    </div>
-                    <div>
-                      <label className={t.label}>OP. PRESS (M)</label>
+                      <label className={t.label}>OPERATING PRES (m)</label>
                       <input type="number" value={operatingPressure} onChange={e => setOperatingPressure(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                     </div>
+                    <div>
+                      <label className={t.label}>PUMP EFF (%)</label>
+                      <input type="number" value={pumpEfficiency ? pumpEfficiency * 100 : ''} onChange={e => setPumpEfficiency(e.target.value === '' ? '' : Number(e.target.value) / 100)} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
+                    </div>
                   </div>
                 </div>
               </div>
 
+              {/* Solar PV Sizing Card */}
               <div className={t.card}>
-                <h2 className={t.header}>☀️ Solar & BoS Sizing</h2>
+                <h2 className={t.header}>☀️ SPIS Solar PV Sizing</h2>
                 <div className="space-y-3">
-                  <div>
-                    <label className={t.label}>PEAK SUN HOURS (PSH)</label>
-                    <input type="number" step="0.1" value={peakSunHours} onChange={e => setPeakSunHours(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={t.label}>PEAK SUN HOURS</label>
+                      <input type="number" value={peakSunHours} onChange={e => setPeakSunHours(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
+                    </div>
+                    <div>
+                      <label className={t.label}>SAFETY FACTOR</label>
+                      <input type="number" value={safetyFactor} onChange={e => setSafetyFactor(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={t.label}>SOLAR PANEL SPEC (WATTAGE)</label>
-                    <select value={panelWattage} onChange={e => setPanelWattage(Number(e.target.value))} className={`${t.select} w-full truncate`}>
-                      <option value={250}>250W (Standard Economy)</option>
-                      <option value={300}>300W (Mid-Range Residential)</option>
-                      <option value={350}>350W (Standard Commercial)</option>
-                      <option value={400}>400W (High-Efficiency)</option>
-                      <option value={450}>450W (Utility Grade)</option>
-                      <option value={550}>550W (High-Capacity Utility)</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={t.label}>PANEL WATTAGE</label>
+                      <select value={panelWattage} onChange={e => setPanelWattage(Number(e.target.value))} className={`${t.select} w-full truncate`}>
+                        <option value={300}>300W Monocrystalline</option>
+                        <option value={350}>350W Monocrystalline</option>
+                        <option value={400}>400W Monocrystalline</option>
+                        <option value={550}>550W High-Efficiency</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={t.label}>BUS VOLTAGE</label>
+                      <select value={systemVoltage} onChange={e => setSystemVoltage(Number(e.target.value))} className={`${t.select} w-full truncate`}>
+                        <option value={24}>24V DC Bus</option>
+                        <option value={48}>48V DC Bus</option>
+                        <option value={96}>96V DC Bus</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className={t.label}>SYSTEM DC VOLTAGE</label>
-                    <select value={systemVoltage} onChange={e => setSystemVoltage(Number(e.target.value))} className={`${t.select} w-full truncate`}>
-                      <option value={12}>12V DC System</option>
-                      <option value={24}>24V DC System</option>
-                      <option value={48}>48V DC System (Standard)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={t.label}>BATTERY STORAGE AUTONOMY</label>
-                    <select value={batteryAutonomyRatio} onChange={e => setBatteryAutonomyRatio(Number(e.target.value))} className={`${t.select} w-full truncate`}>
-                      <option value={0.25}>0.25 Day Buffer (Telemetry/Controls)</option>
-                      <option value={0.50}>0.50 Day Buffer (Standard Half-Day)</option>
-                      <option value={1.00}>1.00 Day (Full 24-Hour Autonomy)</option>
-                      <option value={2.00}>2.00 Days (Extended Rain/Cloud Backup)</option>
-                    </select>
+                  <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-slate-400">Total Solar Array:</span><strong className="text-white">{(totalPvWatts / 1000).toFixed(2)} kWp</strong></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Panel Units Needed:</span><strong className="text-emerald-400">{recommendedPanelCount} units ({panelWattage}W)</strong></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Recommended VFD:</span><strong className="text-white">{recommendedInverterKw} kW</strong></div>
                   </div>
                 </div>
               </div>
 
+              {/* Economic & Outputs Card */}
               <div className={t.card}>
-                <h2 className={t.header}>💰 Economics & Savings</h2>
+                <h2 className={t.header}>📊 System Outputs & Savings</h2>
                 <div className="space-y-3">
+                  <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="text-slate-400">Gross Crop Demand:</span><strong className="text-emerald-400">{cropDemandFormatted} mm/day</strong></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Total Dynamic Head:</span><strong className="text-white">{totalHeadNum.toFixed(1)} m</strong></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Daily Pumping Yield:</span><strong className="text-white">{dailyWaterVolumeM3.toFixed(1)} m³/day</strong></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Annual Diesel Savings:</span><strong className="text-amber-400">₱{Math.round(annualSavingsPHP).toLocaleString()}</strong></div>
+                  </div>
                   <div>
-                    <label className={t.label}>FUEL / DIESEL PRICE</label>
+                    <label className={t.label}>DIESEL PRICE (PHP/L)</label>
                     <input type="number" value={dieselPricePHP} onChange={e => setDieselPricePHP(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
                   </div>
-                  <div>
-                    <label className={t.label}>ANNUAL OP. DAYS</label>
-                    <input type="number" value={annualOpDays} onChange={e => setAnnualOpDays(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full border rounded-lg px-3 py-2 text-xs focus:outline-none ${t.input}`} />
-                  </div>
-                  <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950/40 border-slate-800/60' : 'bg-slate-100 border-slate-200'}`}>
-                    <span className="text-[10px] text-slate-500 block font-medium">DAILY YIELD</span>
-                    <div className={`text-lg font-bold ${activeTheme.text} mt-0.5`}>{dailyWaterVolumeM3.toFixed(1)} <span className="text-[10px] font-normal text-slate-400">m³/day</span></div>
-                  </div>
                 </div>
               </div>
 
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:hidden">
-              <div className={t.card}>
-                <h2 className={t.header}>📈 Total Dynamic Head (TDH) Breakdown</h2>
-                <div className="h-64 flex justify-center items-center">
-                  <Doughnut data={tdhDoughnutData} options={chartOptions} />
-                </div>
-              </div>
-              <div className={t.card}>
-                <h2 className={t.header}>☀️ Estimated Daily Pumping Yield Curve</h2>
-                <div className="h-64">
-                  <Bar data={solarBarData} options={chartOptions} />
-                </div>
-              </div>
-            </div>
-
-            <div className={t.card}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className={t.header}>📊 Comprehensive Agronomic & Engineering Outputs</h2>
-                <span className={`text-xs ${activeTheme.badge} border px-3 py-1 rounded-full font-medium print:hidden`}>Integrated Suite Active</span>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-6">
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">GROSS CROP DEMAND</span>
-                  <div className={`text-xl font-bold ${activeTheme.text} mt-1`}>{cropDemandFormatted} <span className="text-xs font-normal text-slate-400">mm/d</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">{selectedCrop === 'lowland_rice' ? 'Paddy + 3mm Seepage Allowance' : 'Dryland Aerobic Regime'}</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">REQUIRED PV ARRAY</span>
-                  <div className="text-xl font-bold text-amber-500 mt-1">{requiredPvKw.toFixed(2)} <span className="text-xs font-normal text-slate-400">kWp</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">~{recommendedPanelCount} panels ({panelWattage}W)</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">MPPT CHARGE CONTROLLER</span>
-                  <div className="text-xl font-bold text-sky-500 mt-1">{recommendedSccAmps} <span className="text-xs font-normal text-slate-400">Amps</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">@ {systemVoltage}V DC Bus</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">PUMP INVERTER / VFD</span>
-                  <div className="text-xl font-bold text-indigo-500 mt-1">{recommendedInverterKw} <span className="text-xs font-normal text-slate-400">kW</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">Motor surge rated</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">LIFEPO4 BATTERY BANK</span>
-                  <div className="text-xl font-bold text-teal-500 mt-1">{battery100AhUnits} <span className="text-xs font-normal text-slate-400">units (100Ah)</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">@ {systemVoltage}V ({batteryAutonomyRatio * 100}% day)</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">DAILY PUMPING YIELD</span>
-                  <div className={`text-xl font-bold ${activeTheme.text} mt-1`}>{dailyWaterVolumeM3.toFixed(1)} <span className="text-xs font-normal text-slate-400">m³/d</span></div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">At {numPSH} PSH</span>
-                </div>
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[11px] text-slate-500 block font-medium">ANNUAL FUEL SAVINGS</span>
-                  <div className={`text-xl font-bold ${activeTheme.text} mt-1`}>₱{Math.round(annualSavingsPHP).toLocaleString()}</div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">{(annualCo2Kg / 1000).toFixed(2)} tonnes CO₂</span>
-                </div>
-              </div>
             </div>
           </>
         )}
@@ -757,3 +659,5 @@ export function IrrigationDashboard() {
     </div>
   );
 }
+
+export default IrrigationDashboard;
