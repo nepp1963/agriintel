@@ -225,7 +225,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     ]
   },
   'NCR (National Capital Region)': {
-    name: 'National Capital Region (NCR)',
+    name: 'NCR (National Capital Region)',
     lat: 14.5995,
     lng: 120.9842,
     climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
@@ -299,6 +299,29 @@ export function IrrigationDashboard() {
 
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
+
+  // Helper to find and snap to the closest Philippine region when clicking the map
+  const handleMapLocationSelect = (lat: number, lng: number) => {
+    updateFromCoords(lat, lng);
+
+    let closestKey = selectedRegionKey;
+    let minDistance = Infinity;
+
+    for (const [key, reg] of Object.entries(REGIONAL_INTELLIGENCE)) {
+      const dist = Math.pow(reg.lat - lat, 2) + Math.pow(reg.lng - lng, 2);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestKey = key;
+      }
+    }
+
+    setSelectedRegionKey(closestKey);
+    setRegionPreset(closestKey);
+    const matchedReg = REGIONAL_INTELLIGENCE[closestKey];
+    if (matchedReg) {
+      setSelectedSoilOrder(matchedReg.predominantSoil);
+    }
+  };
 
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
@@ -498,7 +521,7 @@ export function IrrigationDashboard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               
-              {/* Card 1: Regional Climate & Crops (With Soil Order Selector) */}
+              {/* Card 1: Regional Climate & Crops */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   🌱 Regional Climate & Crops
@@ -510,6 +533,7 @@ export function IrrigationDashboard() {
                     onChange={(e) => {
                       const newReg = e.target.value;
                       setRegionPreset(newReg);
+                      setSelectedRegionKey(newReg);
                       const reg = REGIONAL_INTELLIGENCE[newReg];
                       if (reg) {
                         updateFromCoords(reg.lat, reg.lng);
@@ -524,7 +548,6 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
 
-                {/* BSWM Soil Taxonomy Selector */}
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DA-BSWM SOIL ORDER CLASSIFICATION</label>
                   <select 
@@ -736,7 +759,7 @@ export function IrrigationDashboard() {
                 <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span></p>
               </div>
               <div className="w-full md:w-72">
-                <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); updateFromCoords(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); handleMapLocationSelect(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
                   <option value="14.45896,120.93851">Bacoor, Cavite (14.459° N, 120.939° E)</option>
                   <option value="15.0286,120.6896">Pampanga Central Plain (15.029° N, 120.690° E)</option>
                   <option value="14.1648,121.2413">Laguna / UPLB (14.165° N, 121.241° E)</option>
@@ -749,7 +772,7 @@ export function IrrigationDashboard() {
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
-                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
+                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>Selected Location: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
@@ -771,6 +794,7 @@ export function IrrigationDashboard() {
                   onChange={(e) => {
                     const key = e.target.value;
                     setSelectedRegionKey(key);
+                    setRegionPreset(key);
                     const reg = REGIONAL_INTELLIGENCE[key];
                     if (reg) {
                       updateFromCoords(reg.lat, reg.lng);
@@ -823,7 +847,7 @@ export function IrrigationDashboard() {
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
-                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
+                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>{activeRegionData.name}</Popup></Marker>
               </MapContainer>
@@ -849,7 +873,7 @@ export function IrrigationDashboard() {
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
               <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
-                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
+                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 
                 <Polygon
@@ -918,7 +942,7 @@ export function IrrigationDashboard() {
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
-                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
+                <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>Geohazard Check: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
@@ -965,7 +989,7 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 7: Land Suitability (With Soil Order Selector) */}
+        {/* Tab 7: Land Suitability */}
         {activeTab === 'land' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -979,6 +1003,7 @@ export function IrrigationDashboard() {
                   onChange={(e) => {
                     const key = e.target.value;
                     setSelectedRegionKey(key);
+                    setRegionPreset(key);
                     const reg = REGIONAL_INTELLIGENCE[key];
                     if (reg) {
                       updateFromCoords(reg.lat, reg.lng);
