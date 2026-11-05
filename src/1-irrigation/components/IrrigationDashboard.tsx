@@ -5,7 +5,7 @@ import { useLocation } from '../../context/LocationContext';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Regional Extreme Weather & Crop Suitability Intelligence Dataset
+// Complete Philippine Regional Extreme Weather & Crop Suitability Intelligence Dataset (All 17 Regions)
 const REGIONAL_INTELLIGENCE: Record<string, {
   name: string;
   lat: number;
@@ -15,72 +15,208 @@ const REGIONAL_INTELLIGENCE: Record<string, {
   extremeEvents: string[];
   cropSuitability: { crop: string; rating: string; advisory: string }[];
 }> = {
-  'CALABARZON (Cavite / Batangas)': {
-    name: 'CALABARZON (Region IV-A)',
-    lat: 14.45896,
-    lng: 120.93851,
-    climateType: 'Type I (Two pronounced seasons: Dry Nov-Apr, Wet May-Oct)',
-    typhoonFrequency: 'Moderate - High (3 to 4 Tropical Cyclones / year)',
-    extremeEvents: [
-      'Monsoon Surge Flash Floods (Southwest Monsoon / Habagat)',
-      'Volcanic Ashfall & Lahar Risks (Taal Eruption Hazard Buffer)',
-      'Prolonged Dry Spells during Strong El Niño Events'
-    ],
+  'Region I (Ilocos Region)': {
+    name: 'Region I (Ilocos Region)',
+    lat: 16.0792,
+    lng: 120.3308,
+    climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
+    typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    extremeEvents: ['Prolonged summer drought', 'Monsoon flash floods', 'Coastal storm surges'],
     cropSuitability: [
-      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Requires drainage management during peak Habagat wet season.' },
-      { crop: 'High-Value Upland Crops', rating: 'S1 - Highly Suitable', advisory: 'Optimal in volcanic loam upland zones (Lipa/Tagaytay).' },
-      { crop: 'Corn & Grain Legumes', rating: 'S2 - Moderately Suitable', advisory: 'Prone to waterlogging in alluvial coastal plains.' }
+      { crop: 'Lowland Rice & Tobacco', rating: 'S1 - Highly Suitable', advisory: 'Thrives during dry season with regulated irrigation.' },
+      { crop: 'Mango & Legumes', rating: 'S1 - Highly Suitable', advisory: 'Excellent performance in well-drained rolling terrain.' }
     ]
   },
-  'Central Luzon (Pampanga Plain)': {
-    name: 'Central Luzon (Region III)',
+  'Region II (Cagayan Valley)': {
+    name: 'Region II (Cagayan Valley)',
+    lat: 17.6132,
+    lng: 121.7270,
+    climateType: 'Type III (Seasons not very pronounced, relatively dry)',
+    typhoonFrequency: 'Very High (Direct entry corridor for Super Typhoons)',
+    extremeEvents: ['Catastrophic Cagayan River Basin flooding', 'Severe typhoons & sustained gales', 'Agricultural drought'],
+    cropSuitability: [
+      { crop: 'Corn & Lowland Rice', rating: 'S1 - Highly Suitable', advisory: 'Major corn granary; monitor fourth-quarter typhoon risks.' },
+      { crop: 'Citrus & Banana', rating: 'S2 - Moderately Suitable', advisory: 'Prone to wind damage during peak typhoon months.' }
+    ]
+  },
+  'Region III (Central Luzon)': {
+    name: 'Region III (Central Luzon)',
     lat: 15.0286,
     lng: 120.6896,
     climateType: 'Type I (Pronounced dry and wet seasons)',
     typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
-    extremeEvents: [
-      'Widespread Agricultural Inundation (Pampanga River Basin Overflow)',
-      'Extreme Summer Heat & Irrigation Water Deficits (Angat Dam Allocation Constraints)',
-      'Typhoon Direct Hits & Strong Gale Force Winds'
-    ],
+    extremeEvents: ['Pampanga River Basin agricultural inundation', 'Severe summer heat & irrigation water deficits', 'Typhoon wind damage'],
     cropSuitability: [
-      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Rice granary of the Philippines; double-cropping highly viable.' },
-      { crop: 'Bulb Onion & Garlic', rating: 'S1 - Highly Suitable', advisory: 'Ideal during dry season (Nueva Ecija / Tarlac plain).' },
-      { crop: 'Perennial Fruit Crops', rating: 'S3 - Marginally Suitable', advisory: 'High flood damage risk during major typhoons.' }
+      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Rice granary; double-cropping highly viable.' },
+      { crop: 'Bulb Onion & Garlic', rating: 'S1 - Highly Suitable', advisory: 'Ideal during dry season in Nueva Ecija/Tarlac.' }
     ]
   },
-  'Bicol Peninsula (Naga / Albay)': {
+  'Region IV-A (CALABARZON)': {
+    name: 'CALABARZON (Region IV-A)',
+    lat: 14.45896,
+    lng: 120.93851,
+    climateType: 'Type I (Two pronounced seasons)',
+    typhoonFrequency: 'Moderate - High (3 to 4 Cyclones / year)',
+    extremeEvents: ['Monsoon Surge Flash Floods (Habagat)', 'Volcanic ashfall & lahar risks (Taal)', 'Prolonged dry spells (El Niño)'],
+    cropSuitability: [
+      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Requires drainage management during peak wet season.' },
+      { crop: 'High-Value Upland Crops', rating: 'S1 - Highly Suitable', advisory: 'Optimal in volcanic loam upland zones (Lipa/Tagaytay).' }
+    ]
+  },
+  'MIMAROPA (Region IV-B)': {
+    name: 'MIMAROPA (Region IV-B)',
+    lat: 12.7503,
+    lng: 121.1812,
+    climateType: 'Type I & III (Short dry season)',
+    typhoonFrequency: 'Moderate (3 Cyclones / year)',
+    extremeEvents: ['Coastal storm surges', 'Flash floods in island river basins', 'Seasonal dry-season water stress'],
+    cropSuitability: [
+      { crop: 'Cashew, Coconut & Rice', rating: 'S1 - Highly Suitable', advisory: 'Thrives across Palawan and Mindoro alluvial valleys.' },
+      { crop: 'Cassava & Root Crops', rating: 'S1 - Highly Suitable', advisory: 'Resilient in sandy coastal loam soils.' }
+    ]
+  },
+  'Region V (Bicol Region)': {
     name: 'Bicol Region (Region V)',
     lat: 13.6218,
     lng: 123.1948,
-    climateType: 'Type II & IV (No dry season with very pronounced maximum rainfall)',
+    climateType: 'Type II & IV (No dry season, pronounced max rainfall)',
     typhoonFrequency: 'Very High (Direct Typhoon Belt: 5+ Cyclones / year)',
-    extremeEvents: [
-      'Super Typhoon Wind Damage & Storm Surges',
-      'Extreme Rainfall & Volcanic Lahar Flows (Mayon Hazard Zone)',
-      'Soil Saturation & Constant Siltation Inundation'
-    ],
+    extremeEvents: ['Super Typhoon wind damage & storm surges', 'Volcanic lahar flows (Mayon)', 'Continuous soil saturation'],
     cropSuitability: [
       { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Resilient perennial crops suited for continuous rainfall.' },
-      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'High crop loss risk during late fourth-quarter typhoons.' },
-      { crop: 'High-Value Vegetables', rating: 'S3 - Marginally Suitable', advisory: 'Requires protected cropping/greenhouse structures.' }
+      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'High crop loss risk during late fourth-quarter typhoons.' }
     ]
   },
-  'Western Visayas (Iloilo Plain)': {
+  'Region VI (Western Visayas)': {
     name: 'Western Visayas (Region VI)',
     lat: 10.7202,
     lng: 122.5621,
-    climateType: 'Type I & III (Short dry season of 1 to 3 months)',
+    climateType: 'Type I & III (Short dry season 1–3 months)',
     typhoonFrequency: 'Moderate (2 to 3 Cyclones / year)',
-    extremeEvents: [
-      'Agricultural Drought & Prolonged El Niño Dry Spells',
-      'Riverine Flooding (Jaro & Jalaur River Basins)',
-      'Coastal High Tides & Salinity Intrusion'
-    ],
+    extremeEvents: ['Agricultural drought (El Niño)', 'Riverine flooding (Jaro/Jalaur basins)', 'Salinity intrusion'],
     cropSuitability: [
       { crop: 'Sugarcane & Grains', rating: 'S1 - Highly Suitable', advisory: 'Extremely productive in well-drained alluvial plains.' },
-      { crop: 'Rainfed Rice', rating: 'S2 - Moderately Suitable', advisory: 'Vulnerable to onset delays of the wet monsoon.' },
-      { crop: 'Aqua-Silviculture', rating: 'S1 - Highly Suitable', advisory: 'Ideal in coastal brackish transitional zones.' }
+      { crop: 'Rainfed Rice', rating: 'S2 - Moderately Suitable', advisory: 'Vulnerable to onset delays of the wet monsoon.' }
+    ]
+  },
+  'Region VII (Central Visayas)': {
+    name: 'Region VII (Central Visayas)',
+    lat: 10.3157,
+    lng: 123.8854,
+    climateType: 'Type III (Seasons not very pronounced)',
+    typhoonFrequency: 'Low - Moderate (1 to 2 Cyclones / year)',
+    extremeEvents: ['Severe El Niño water scarcity', 'Karst aquifer drought vulnerability', 'Localized coastal flash floods'],
+    cropSuitability: [
+      { crop: 'Corn, Cassava & Mango', rating: 'S1 - Highly Suitable', advisory: 'Well-adapted to rolling limestone-derived soils.' },
+      { crop: 'Lowland Rice', rating: 'S3 - Marginally Suitable', advisory: 'Limited by seasonal water availability.' }
+    ]
+  },
+  'Region VIII (Eastern Visayas)': {
+    name: 'Eastern Visayas (Region VIII)',
+    lat: 11.2434,
+    lng: 125.0047,
+    climateType: 'Type II & IV (No dry season, very high rainfall)',
+    typhoonFrequency: 'Very High (Primary landfall zone for major typhoons)',
+    extremeEvents: ['Catastrophic storm surges (Haiyan-type)', 'Continuous torrential rainfall & landslides', 'Severe river siltation'],
+    cropSuitability: [
+      { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Primary livelihood crop resilient to high moisture.' },
+      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'Requires robust drainage networks.' }
+    ]
+  },
+  'Region IX (Zamboanga Peninsula)': {
+    name: 'Zamboanga Peninsula (Region IX)',
+    lat: 7.9042,
+    lng: 123.2505,
+    climateType: 'Type IV (Evenly distributed rainfall throughout year)',
+    typhoonFrequency: 'Low (Outside main typhoon belt)',
+    extremeEvents: ['Localized flash floods', 'Prolonged dry spells during regional drought', 'Pest and disease outbreaks in rubber'],
+    cropSuitability: [
+      { crop: 'Rubber, Coconut & Fruit Trees', rating: 'S1 - Highly Suitable', advisory: 'Thrives in stable equatorial climate.' },
+      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'Viable in irrigated river valley basins.' }
+    ]
+  },
+  'Region X (Northern Mindanao)': {
+    name: 'Northern Mindanao (Region X)',
+    lat: 8.2280,
+    lng: 124.2452,
+    climateType: 'Type III & IV (No pronounced dry season)',
+    typhoonFrequency: 'Low (Infrequent direct strikes)',
+    extremeEvents: ['Upland flash floods (Sendong-type)', 'Prolonged dry spells', 'Landslides in mountainous agricultural zones'],
+    cropSuitability: [
+      { crop: 'Pineapple, Banana & Corn', rating: 'S1 - Highly Suitable', advisory: 'Major commercial agro-industrial zone (Bukidnon plateau).' },
+      { crop: 'Lowland Rice', rating: 'S1 - Highly Suitable', advisory: 'High yields in Bukidnon and Agusan river valleys.' }
+    ]
+  },
+  'Region XI (Davao Region)': {
+    name: 'Davao Region (Region XI)',
+    lat: 7.1907,
+    lng: 125.4553,
+    climateType: 'Type IV (Rainfall evenly distributed)',
+    typhoonFrequency: 'Very Low (Generally typhoon-free)',
+    extremeEvents: ['Strong convective thunderstorms', 'El Niño agricultural moisture stress', 'Seismic activity & landslides'],
+    cropSuitability: [
+      { crop: 'Cavendish Banana, Durian & Cacao', rating: 'S1 - Highly Suitable', advisory: 'Prime export fruit production zone.' },
+      { crop: 'Coconut & Palm Oil', rating: 'S1 - Highly Suitable', advisory: 'Excellent climatic fit.' }
+    ]
+  },
+  'Region XII (SOCCSKSARGEN)': {
+    name: 'SOCCSKSARGEN (Region XII)',
+    lat: 6.2704,
+    lng: 124.6053,
+    climateType: 'Type IV (Rainfall evenly distributed)',
+    typhoonFrequency: 'Very Low (Typhoon-free zone)',
+    extremeEvents: ['Agricultural drought / El Niño grain loss', 'River basin flooding (Cotabato marshlands)', 'Convective flash floods'],
+    cropSuitability: [
+      { crop: 'Corn, Rice & Palm Oil', rating: 'S1 - Highly Suitable', advisory: 'Highly productive agricultural plains (Cotabato/Koronadal).' },
+      { crop: 'Coffee & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Thrives in upland volcanic soils.' }
+    ]
+  },
+  'Region XIII (Caraga)': {
+    name: 'Caraga (Region XIII)',
+    lat: 8.9504,
+    lng: 125.5312,
+    climateType: 'Type II (No dry season, maximum rainfall in winter)',
+    typhoonFrequency: 'Moderate - High (Eastern seaboard exposure)',
+    extremeEvents: ['Severe riverine flooding (Agusan River Basin)', 'Continuous heavy winter monsoon rains', 'Coastal storm surges'],
+    cropSuitability: [
+      { crop: 'Timber, Palm Oil & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Ideal forestry and agro-forestry climate.' },
+      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'Prone to seasonal inundation in Agusan basin.' }
+    ]
+  },
+  'CAR (Cordillera Administrative Region)': {
+    name: 'Cordillera Administrative Region (CAR)',
+    lat: 16.4023,
+    lng: 120.5960,
+    climateType: 'Type I & III (Pronounced dry/wet with cool high-altitude climate)',
+    typhoonFrequency: 'High (Mountainous windward exposure)',
+    extremeEvents: ['Catastrophic mountain landslides & road slips', 'Severe typhoon wind & rain battering', 'Sub-zero frost events in high peaks'],
+    cropSuitability: [
+      { crop: 'Temperate Vegetables (Potato/Cabbage)', rating: 'S1 - Highly Suitable', advisory: 'Requires terraced farming and soil erosion control.' },
+      { crop: 'Strawberries & Cut Flowers', rating: 'S1 - Highly Suitable', advisory: 'High-value highland specialty crops.' }
+    ]
+  },
+  'NCR (National Capital Region)': {
+    name: 'National Capital Region (NCR)',
+    lat: 14.5995,
+    lng: 120.9842,
+    climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
+    typhoonFrequency: 'Moderate - High (Direct urban exposure)',
+    extremeEvents: ['Urban tidal & monsoon flooding (Marikina/Pasig basins)', 'Severe heat island effect', 'Typhoon windstorm disruptions'],
+    cropSuitability: [
+      { crop: 'Urban Agriculture & Hydroponics', rating: 'S1 - Highly Suitable', advisory: 'Controlled environment agriculture and rooftop farming.' },
+      { crop: 'Conventional Field Crops', rating: 'S3 - Marginally Suitable', advisory: 'Extremely limited by urbanization and industrial conversion.' }
+    ]
+  },
+  'BARMM (Bangsamoro)': {
+    name: 'BARMM (Bangsamoro)',
+    lat: 7.2230,
+    lng: 124.2431,
+    climateType: 'Type IV (Rainfall evenly distributed)',
+    typhoonFrequency: 'Very Low (Typhoon-free)',
+    extremeEvents: ['Lingering Liguasan Marsh seasonal flooding', 'Prolonged dry spells', 'River siltation'],
+    cropSuitability: [
+      { crop: 'Corn, Cassava & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Extensive alluvial agricultural potential.' },
+      { crop: 'Aquaculture & Inland Fisheries', rating: 'S1 - Highly Suitable', advisory: 'Unmatched potential across marshland and coastal zones.' }
     ]
   }
 };
@@ -120,8 +256,8 @@ export function IrrigationDashboard() {
   const { location, updateFromCoords } = useLocation();
 
   // Selected Regional Intelligence Preset
-  const [selectedRegionKey, setSelectedRegionKey] = useState<string>('CALABARZON (Cavite / Batangas)');
-  const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['CALABARZON (Cavite / Batangas)'];
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
+  const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
   // Map view mode toggle ('street' vs 'satellite')
   const [sharedZoom, setSharedZoom] = useState<number>(13);
@@ -343,7 +479,7 @@ export function IrrigationDashboard() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Regional Weather & Extreme Climate Risk Matrix</h3>
-                <p className="text-xs text-slate-400">Select a regional zone to evaluate historical climate extremes and typhoon frequencies.</p>
+                <p className="text-xs text-slate-400">Select any Philippine region to evaluate historical climate extremes and typhoon frequencies.</p>
               </div>
               <div className="w-full md:w-80">
                 <select
@@ -404,13 +540,13 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 4: PAGASA Typhoon & PAR (WITH FULL REGIONAL EXTREME WEATHER TABLE) */}
+        {/* Tab 4: PAGASA Typhoon & PAR (WITH FULL NATIONWIDE REGIONAL TABLE) */}
         {activeTab === 'typhoon' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) & Regional Weather Matrix</h3>
-                <p className="text-xs text-slate-400">Comprehensive multi-region extreme weather, typhoon frequency, and vulnerability breakdown.</p>
+                <p className="text-xs text-slate-400">Complete nationwide extreme weather and typhoon vulnerability table across all 17 Philippine regions.</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
                 PAR Status: Normal (No Cyclones Detected)
@@ -442,49 +578,30 @@ export function IrrigationDashboard() {
               </MapContainer>
             </div>
 
-            {/* Comprehensive Regional Extreme Weather Table */}
+            {/* Comprehensive Nationwide Regional Extreme Weather Table */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📋 Philippine Regional Extreme Weather & Vulnerability Listing</h4>
-              <div className="overflow-x-auto">
+              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📋 Complete Nationwide Regional Extreme Weather & Vulnerability Listing (All 17 Regions)</h4>
+              <div className="overflow-x-auto max-h-[500px]">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
-                      <th className="p-3">Region / Administrative Zone</th>
-                      <th className="p-3">PAGASA Climate Type</th>
-                      <th className="p-3">Annual Typhoon Exposure</th>
-                      <th className="p-3">Historical Extreme Weather & Hazard Profile</th>
+                  <thead className="sticky top-0 bg-slate-950 text-slate-400">
+                    <tr className="border-b border-slate-800">
+                      <th className="p-3">Region</th>
+                      <th className="p-3">Climate Type</th>
+                      <th className="p-3">Typhoon Exposure</th>
+                      <th className="p-3">Historical Hazards</th>
                       <th className="p-3">Agricultural Vulnerabilities</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                    <tr>
-                      <td className="p-3 font-bold text-emerald-400">CALABARZON (Region IV-A)</td>
-                      <td className="p-3">Type I (Dry Nov–Apr, Wet May–Oct)</td>
-                      <td className="p-3"><span className="text-amber-400 font-medium">Moderate-High</span> (3–4 cyclones/yr)</td>
-                      <td className="p-3">• Habagat flash floods<br/>• Taal volcanic ash/lahar buffer<br/>• El Niño dry spells</td>
-                      <td className="p-3">Upland water deficit; lowland coastal/lake plain waterlogging.</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 font-bold text-emerald-400">Central Luzon (Region III)</td>
-                      <td className="p-3">Type I (Pronounced wet/dry seasons)</td>
-                      <td className="p-3"><span className="text-red-400 font-medium">High</span> (4–5 cyclones/yr, direct landfalls)</td>
-                      <td className="p-3">• Pampanga River Basin overflow<br/>• Extreme heat & irrigation stress<br/>• Severe Q4 typhoon winds</td>
-                      <td className="p-3">Flood inundation and siltation of paddies; dry-season water limits.</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 font-bold text-emerald-400">Bicol Region (Region V)</td>
-                      <td className="p-3">Type II & IV (No dry season, max rainfall)</td>
-                      <td className="p-3"><span className="text-red-500 font-bold">Very High</span> (5+ destructive cyclones/yr)</td>
-                      <td className="p-3">• Catastrophic storm surges<br/>• Mayon lahar & landslide risks<br/>• Persistent soil saturation</td>
-                      <td className="p-3">Nutrient leaching, high post-harvest losses, facility damage.</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 font-bold text-emerald-400">Western Visayas (Region VI)</td>
-                      <td className="p-3">Type I & III (Short 1–3 month dry season)</td>
-                      <td className="p-3"><span className="text-amber-400 font-medium">Moderate</span> (2–3 cyclones/yr)</td>
-                      <td className="p-3">• Agricultural drought<br/>• Jaro/Jalaur flash floods<br/>• Estuarine salinity intrusion</td>
-                      <td className="p-3">Dry-season planting delays; severe erosion on sloping terrain.</td>
-                    </tr>
+                    {Object.values(REGIONAL_INTELLIGENCE).map((reg, idx) => (
+                      <tr key={idx} className="hover:bg-slate-900/40">
+                        <td className="p-3 font-bold text-emerald-400">{reg.name}</td>
+                        <td className="p-3">{reg.climateType}</td>
+                        <td className="p-3 font-medium text-amber-400">{reg.typhoonFrequency}</td>
+                        <td className="p-3">{reg.extremeEvents.join('; ')}</td>
+                        <td className="p-3">{reg.cropSuitability.map(c => c.advisory).join(' ')}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
