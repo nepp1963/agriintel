@@ -264,8 +264,8 @@ export function IrrigationDashboard() {
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // Advanced SPIS Inputs
-  const [regionPreset, setRegionPreset] = useState('Central & Northern Luzon');
+  // Advanced SPIS Inputs with All Philippine Regions
+  const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState(31.5);
   const [solarRad, setSolarRad] = useState(21);
@@ -280,18 +280,37 @@ export function IrrigationDashboard() {
   const [minorLossPct, setMinorLossPct] = useState(10);
   const [opPressure, setOpPressure] = useState(10);
 
+  // Solar & BoS Sizing (12V, 24V, 48V; LiFePO4 batteries; 150W-600W panels)
   const [peakSunHours, setPeakSunHours] = useState(5.2);
   const [solarSpec, setSolarSpec] = useState('350W (Standard Commercial)');
   const [dcVoltage, setDcVoltage] = useState('48V DC System (Standard)');
-  const [batteryAutonomy, setBatteryAutonomy] = useState('0.50 Day Buffer (Standard Half-Day)');
+  const [batteryType, setBatteryType] = useState('12V 200Ah LiFePO4');
 
   const [dieselPrice, setDieselPrice] = useState(60);
   const [annualDays, setAnnualDays] = useState(240);
 
   // Computed Hydraulics & Economics
-  const frictionLoss = ((pipeLength * 0.02) / (pipeDiameter / 1000)).toFixed(1);
-  const totalTDH = (staticLift + Number(frictionLoss) + opPressure).toFixed(1);
+  const frictionLossNum = Number(((pipeLength * 0.02) / (pipeDiameter / 1000)).toFixed(1));
+  const minorLossNum = Number(((staticLift + frictionLossNum) * (minorLossPct / 100)).toFixed(1));
+  const totalTDHNum = Number((staticLift + frictionLossNum + minorLossNum + opPressure).toFixed(1));
   const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1);
+
+  // Conic gradient calculations for TDH Pie Chart
+  const pStatic = (staticLift / totalTDHNum) * 100;
+  const pFriction = (frictionLossNum / totalTDHNum) * 100;
+  const pMinor = (minorLossNum / totalTDHNum) * 100;
+  const pPress = (opPressure / totalTDHNum) * 100;
+
+  const c1 = pStatic;
+  const c2 = c1 + pFriction;
+  const c3 = c2 + pMinor;
+
+  const tdhConicGradient = `conic-gradient(
+    #64748b 0% ${c1}%, 
+    #f59e0b ${c1}% ${c2}%, 
+    #eab308 ${c2}% ${c3}%, 
+    #06b6d4 ${c3}% 100%
+  )`;
 
   // Watershed Hydrology States
   const [rainfallDepth, setRainfallDepth] = useState(75);
@@ -422,17 +441,26 @@ export function IrrigationDashboard() {
         {activeTab === 'spis' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Card 1: Regional Climate & Crops */}
+              
+              {/* Card 1: Regional Climate & Crops (With All 17 Regions) */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   🌱 Regional Climate & Crops
                 </h3>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">REGION PRESET</label>
-                  <select value={regionPreset} onChange={(e) => setRegionPreset(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="Central & Northern Luzon">Central & Northern Luzon</option>
-                    <option value="Southern Luzon (Batangas/Cavite)">Southern Luzon (Batangas/Cavite)</option>
-                    <option value="Western Visayas (Iloilo)">Western Visayas (Iloilo)</option>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">REGION PRESET (ALL PHILIPPINE REGIONS)</label>
+                  <select 
+                    value={regionPreset} 
+                    onChange={(e) => {
+                      setRegionPreset(e.target.value);
+                      const reg = REGIONAL_INTELLIGENCE[e.target.value];
+                      if (reg) updateFromCoords(reg.lat, reg.lng);
+                    }} 
+                    className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                  >
+                    {Object.keys(REGIONAL_INTELLIGENCE).map((regKey) => (
+                      <option key={regKey} value={regKey}>{regKey}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -488,7 +516,7 @@ export function IrrigationDashboard() {
                 </div>
               </div>
 
-              {/* Card 3: Solar & BoS Sizing */}
+              {/* Card 3: Solar & BoS Sizing (12V, 24V, LiFePO4 batteries, 150W-600W panels) */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   ☀️ Solar & BoS Sizing
@@ -500,22 +528,28 @@ export function IrrigationDashboard() {
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR PANEL SPEC (WATTAGE)</label>
                   <select value={solarSpec} onChange={(e) => setSolarSpec(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="150W Compact Panel">150W Compact Panel</option>
+                    <option value="250W Standard Utility">250W Standard Utility</option>
                     <option value="350W (Standard Commercial)">350W (Standard Commercial)</option>
                     <option value="450W (High-Efficiency Mono)">450W (High-Efficiency Mono)</option>
+                    <option value="550W High-Power Agro">550W High-Power Agro</option>
+                    <option value="600W Ultra High-Power">600W Ultra High-Power</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SYSTEM DC VOLTAGE</label>
                   <select value={dcVoltage} onChange={(e) => setDcVoltage(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="12V DC System">12V DC System</option>
+                    <option value="24V DC System">24V DC System</option>
                     <option value="48V DC System (Standard)">48V DC System (Standard)</option>
-                    <option value="96V DC System (High Head)">96V DC System (High Head)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">BATTERY STORAGE AUTONOMY</label>
-                  <select value={batteryAutonomy} onChange={(e) => setBatteryAutonomy(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="0.50 Day Buffer (Standard Half-Day)">0.50 Day Buffer (Standard Half-Day)</option>
-                    <option value="1.00 Day Full Autonomy">1.00 Day Full Autonomy</option>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LIFEPO4 BATTERY BANK SPEC</label>
+                  <select value={batteryType} onChange={(e) => setBatteryType(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="12V 100Ah LiFePO4">12V 100Ah LiFePO4</option>
+                    <option value="12V 200Ah LiFePO4">12V 200Ah LiFePO4</option>
+                    <option value="12V 314Ah LiFePO4">12V 314Ah LiFePO4</option>
                   </select>
                 </div>
               </div>
@@ -542,37 +576,61 @@ export function IrrigationDashboard() {
 
             {/* Bottom Analytics & Curves Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* TDH Breakdown */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown</h4>
-                <div className="h-6 w-full bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 text-[10px] text-white font-bold">
-                  <div style={{ width: `${(staticLift / Number(totalTDH)) * 100}%` }} className="bg-slate-600 flex items-center justify-center">Static</div>
-                  <div style={{ width: `${(Number(frictionLoss) / Number(totalTDH)) * 100}%` }} className="bg-amber-500 flex items-center justify-center">Friction</div>
-                  <div style={{ width: `10%` }} className="bg-yellow-600 flex items-center justify-center">Minor</div>
-                  <div style={{ width: `${(opPressure / Number(totalTDH)) * 100}%` }} className="bg-cyan-500 flex items-center justify-center">Press.</div>
-                </div>
-                <div className="flex justify-between text-xs text-slate-400 pt-1">
-                  <span>Static Lift: <strong>{staticLift}m</strong></span>
-                  <span>Friction: <strong>{frictionLoss}m</strong></span>
-                  <span>Op Pressure: <strong>{opPressure}m</strong></span>
-                  <span className="text-emerald-400 font-bold">Total TDH: {totalTDH}m</span>
+              
+              {/* TDH Breakdown Conic Pie Graph */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
+                <div className="flex flex-col sm:flex-row items-center justify-around gap-6">
+                  {/* Conic Gradient CSS Pie Chart */}
+                  <div 
+                    className="w-36 h-36 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center"
+                    style={{ background: tdhConicGradient }}
+                  >
+                    <div className="w-20 h-20 rounded-full bg-slate-950 flex flex-col items-center justify-center text-center shadow">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Total TDH</span>
+                      <span className="text-sm font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
+                    </div>
+                  </div>
+                  {/* Legend */}
+                  <div className="space-y-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-slate-500 inline-block"></span>
+                      <span>Static Lift: <strong>{staticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                      <span>Friction Loss: <strong>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                      <span>Minor Losses: <strong>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
+                      <span>Op. Pressure: <strong>{opPressure}m</strong> ({pPress.toFixed(1)}%)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Estimated Daily Pumping Yield Curve */}
+              {/* Estimated Daily Pumping Yield Curve with Values on Bars */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve</h4>
-                <div className="h-10 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-1 gap-1">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
+                <div className="h-28 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-2 gap-1.5 pt-6">
                   {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
-                    <div key={i} style={{ height: `${val * 2}%` }} className="flex-1 bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
+                    <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
+                      <span className="text-[9px] text-emerald-400 font-mono opacity-80 group-hover:opacity-100 pb-0.5">{val}m³</span>
+                      <div style={{ height: `${val * 1.8}%` }} className="w-full bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
+                    </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-slate-400 flex justify-between">
+                <p className="text-[11px] text-slate-400 flex justify-between pt-1">
                   <span>06:00 AM</span>
                   <span>12:00 PM (Peak)</span>
                   <span>06:00 PM</span>
                 </p>
               </div>
+
             </div>
           </div>
         )}
