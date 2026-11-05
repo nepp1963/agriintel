@@ -253,6 +253,7 @@ export function IrrigationDashboard() {
     'spis' | 'gis' | 'weather' | 'typhoon' | 'phivolcs' | 'watershed' | 'land' | 'soil' | 'farmPlan'
   >('spis');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [accentColor, setAccentColor] = useState<string>('#10b981'); // Emerald default
   const { location, updateFromCoords } = useLocation();
 
   // Selected Regional Intelligence Preset
@@ -263,16 +264,34 @@ export function IrrigationDashboard() {
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // Input states for SPIS Irrigation (Clean 4-card layout)
-  const [regionPreset, setRegionPreset] = useState('Southern Luzon (Batangas)');
+  // Advanced SPIS Inputs
+  const [regionPreset, setRegionPreset] = useState('Central & Northern Luzon');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState(31.5);
-  const [solarRad, setSolarRad] = useState(20.1);
+  const [solarRad, setSolarRad] = useState(21);
+  const [phenologicalStage, setPhenologicalStage] = useState('Mid-Season Stage (Kc: 1.2)');
+  const [soilTexture, setSoilTexture] = useState('Heavy Clay (AWHC: 180 mm/m)');
+
   const [appMethod, setAppMethod] = useState('Surface Flooding (45% Eff)');
   const [flowRate, setFlowRate] = useState(5);
   const [staticLift, setStaticLift] = useState(12);
+  const [pipeLength, setPipeLength] = useState(150);
+  const [pipeDiameter, setPipeDiameter] = useState(75);
+  const [minorLossPct, setMinorLossPct] = useState(10);
+  const [opPressure, setOpPressure] = useState(10);
+
   const [peakSunHours, setPeakSunHours] = useState(5.2);
-  const [safetyFactor, setSafetyFactor] = useState(1.3);
+  const [solarSpec, setSolarSpec] = useState('350W (Standard Commercial)');
+  const [dcVoltage, setDcVoltage] = useState('48V DC System (Standard)');
+  const [batteryAutonomy, setBatteryAutonomy] = useState('0.50 Day Buffer (Standard Half-Day)');
+
+  const [dieselPrice, setDieselPrice] = useState(60);
+  const [annualDays, setAnnualDays] = useState(240);
+
+  // Computed Hydraulics & Economics
+  const frictionLoss = ((pipeLength * 0.02) / (pipeDiameter / 1000)).toFixed(1);
+  const totalTDH = (staticLift + Number(frictionLoss) + opPressure).toFixed(1);
+  const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1);
 
   // Watershed Hydrology States
   const [rainfallDepth, setRainfallDepth] = useState(75);
@@ -336,7 +355,7 @@ export function IrrigationDashboard() {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header - Clean Matching Layout */}
+        {/* Top Header with Color Palette Picker */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
@@ -344,10 +363,20 @@ export function IrrigationDashboard() {
             </span>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-400">Theme:</span>
-              <button onClick={() => setTheme('dark')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 rounded-lg border border-slate-800">
+                {['#10b981', '#06b6d4', '#6366f1', '#a855f7', '#eab308', '#f97316'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setAccentColor(color)}
+                    style={{ backgroundColor: color }}
+                    className={`w-3.5 h-3.5 rounded-full transition-transform ${accentColor === color ? 'scale-125 ring-2 ring-white' : 'opacity-80 hover:opacity-100'}`}
+                  />
+                ))}
+              </div>
+              <button onClick={() => setTheme('dark')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}>
                 🌙 Dark
               </button>
-              <button onClick={() => setTheme('light')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'light' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              <button onClick={() => setTheme('light')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'light' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}>
                 ☀️ Light
               </button>
             </div>
@@ -355,10 +384,10 @@ export function IrrigationDashboard() {
 
           <div className="flex items-center gap-3">
             <button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition-colors">
-              📊 Export CSV
+              Export CSV
             </button>
             <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
-              🖨️ Print / Executive Dossier
+              Print / Executive Dossier
             </button>
             <span className="text-xs font-bold text-emerald-400 tracking-wider">AgriIntel</span>
           </div>
@@ -389,58 +418,160 @@ export function IrrigationDashboard() {
           ))}
         </div>
 
-        {/* Tab 1: SPIS Irrigation (Clean 4-Card Layout Matching First Screenshot) */}
+        {/* Tab 1: Full Expanded SPIS Irrigation Dashboard */}
         {activeTab === 'spis' && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
-              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌱 Regional Climate & Crops</h3>
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">ACTIVE SITE & REGION</label>
-                <select value={regionPreset} onChange={(e) => setRegionPreset(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                  <option value="Southern Luzon (Batangas)">Southern Luzon (Batangas)</option>
-                  <option value="Central Luzon (Pampanga / San Fernando)">Central Luzon (Pampanga / San Fernando)</option>
-                </select>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Card 1: Regional Climate & Crops */}
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                  🌱 Regional Climate & Crops
+                </h3>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">REGION PRESET</label>
+                  <select value={regionPreset} onChange={(e) => setRegionPreset(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="Central & Northern Luzon">Central & Northern Luzon</option>
+                    <option value="Southern Luzon (Batangas/Cavite)">Southern Luzon (Batangas/Cavite)</option>
+                    <option value="Western Visayas (Iloilo)">Western Visayas (Iloilo)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TARGET CROP PROFILE</label>
+                  <select value={cropProfile} onChange={(e) => setCropProfile(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="Lowland Rice / Paddy (Wetland)">Lowland Rice / Paddy (Wetland)</option>
+                    <option value="High-Value Vegetables (Onion/Garlic)">High-Value Vegetables (Onion/Garlic)</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TEMP (°C)</label><input type="number" value={temp} onChange={(e) => setTemp(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => setSolarRad(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PHENOLOGICAL STAGE (Kc)</label>
+                  <select value={phenologicalStage} onChange={(e) => setPhenologicalStage(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="Mid-Season Stage (Kc: 1.2)">Mid-Season Stage (Kc: 1.2)</option>
+                    <option value="Initial Stage (Kc: 0.4)">Initial Stage (Kc: 0.4)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOIL PROFILE & TEXTURE</label>
+                  <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="Heavy Clay (AWHC: 180 mm/m)">Heavy Clay (AWHC: 180 mm/m)</option>
+                    <option value="Clay Loam (AWHC: 140 mm/m)">Clay Loam (AWHC: 140 mm/m)</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">TARGET CROP PROFILE</label>
-                <select value={cropProfile} onChange={(e) => setCropProfile(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                  <option value="Lowland Rice / Paddy (Wetland)">Lowland Rice / Paddy (Wetland)</option>
-                  <option value="High-Value Vegetables (Onion/Garlic)">High-Value Vegetables (Onion/Garlic)</option>
-                </select>
+
+              {/* Card 2: Irrigation Method & Hydraulics */}
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                  💧 Irrigation Method & Hydraulics
+                </h3>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">APPLICATION METHOD</label>
+                  <select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="Surface Flooding (45% Eff)">Surface Flooding (45% Eff)</option>
+                    <option value="Drip Irrigation (90% Eff)">Drip Irrigation (90% Eff)</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FLOW (L/S)</label><input type="number" value={flowRate} onChange={(e) => setFlowRate(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => setStaticLift(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LENGTH (M)</label><input type="number" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DIAM (MM)</label><input type="number" value={pipeDiameter} onChange={(e) => setPipeDiameter(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">MINOR LOSS (%)</label><input type="number" value={minorLossPct} onChange={(e) => setMinorLossPct(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">OP. PRESS (M)</label><input type="number" value={opPressure} onChange={(e) => setOpPressure(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-slate-400 block mb-1">TEMP (°C)</label><input type="number" value={temp} onChange={(e) => setTemp(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                <div><label className="text-[11px] text-slate-400 block mb-1">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => setSolarRad(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+
+              {/* Card 3: Solar & BoS Sizing */}
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                  ☀️ Solar & BoS Sizing
+                </h3>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PEAK SUN HOURS (PSH)</label>
+                  <input type="number" value={peakSunHours} onChange={(e) => setPeakSunHours(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR PANEL SPEC (WATTAGE)</label>
+                  <select value={solarSpec} onChange={(e) => setSolarSpec(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="350W (Standard Commercial)">350W (Standard Commercial)</option>
+                    <option value="450W (High-Efficiency Mono)">450W (High-Efficiency Mono)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SYSTEM DC VOLTAGE</label>
+                  <select value={dcVoltage} onChange={(e) => setDcVoltage(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="48V DC System (Standard)">48V DC System (Standard)</option>
+                    <option value="96V DC System (High Head)">96V DC System (High Head)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">BATTERY STORAGE AUTONOMY</label>
+                  <select value={batteryAutonomy} onChange={(e) => setBatteryAutonomy(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value="0.50 Day Buffer (Standard Half-Day)">0.50 Day Buffer (Standard Half-Day)</option>
+                    <option value="1.00 Day Full Autonomy">1.00 Day Full Autonomy</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Card 4: Economics & Savings */}
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                  💰 Economics & Savings
+                </h3>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FUEL / DIESEL PRICE</label>
+                  <input type="number" value={dieselPrice} onChange={(e) => setDieselPrice(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">ANNUAL OP. DAYS</label>
+                  <input type="number" value={annualDays} onChange={(e) => setAnnualDays(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                </div>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-1">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">DAILY YIELD</span>
+                  <span className="text-emerald-400 text-lg font-bold block font-mono">{dailyYieldVal} m³/day</span>
+                </div>
               </div>
             </div>
 
-            <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
-              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">💧 Irrigation & Hydraulics</h3>
-              <div><label className="text-[11px] text-slate-400 block mb-1">APPLICATION METHOD</label><select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"><option value="Surface Flooding (45% Eff)">Surface Flooding (45% Eff)</option><option value="Drip Irrigation (90% Eff)">Drip Irrigation (90% Eff)</option></select></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-slate-400 block mb-1">FLOW (L/s)</label><input type="number" value={flowRate} onChange={(e) => setFlowRate(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                <div><label className="text-[11px] text-slate-400 block mb-1">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => setStaticLift(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+            {/* Bottom Analytics & Curves Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* TDH Breakdown */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown</h4>
+                <div className="h-6 w-full bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 text-[10px] text-white font-bold">
+                  <div style={{ width: `${(staticLift / Number(totalTDH)) * 100}%` }} className="bg-slate-600 flex items-center justify-center">Static</div>
+                  <div style={{ width: `${(Number(frictionLoss) / Number(totalTDH)) * 100}%` }} className="bg-amber-500 flex items-center justify-center">Friction</div>
+                  <div style={{ width: `10%` }} className="bg-yellow-600 flex items-center justify-center">Minor</div>
+                  <div style={{ width: `${(opPressure / Number(totalTDH)) * 100}%` }} className="bg-cyan-500 flex items-center justify-center">Press.</div>
+                </div>
+                <div className="flex justify-between text-xs text-slate-400 pt-1">
+                  <span>Static Lift: <strong>{staticLift}m</strong></span>
+                  <span>Friction: <strong>{frictionLoss}m</strong></span>
+                  <span>Op Pressure: <strong>{opPressure}m</strong></span>
+                  <span className="text-emerald-400 font-bold">Total TDH: {totalTDH}m</span>
+                </div>
               </div>
-            </div>
 
-            <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
-              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">☀️ SPIS Solar PV Sizing</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-slate-400 block mb-1">PEAK SUN HOURS</label><input type="number" value={peakSunHours} onChange={(e) => setPeakSunHours(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                <div><label className="text-[11px] text-slate-400 block mb-1">SAFETY FACTOR</label><input type="number" value={safetyFactor} onChange={(e) => setSafetyFactor(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-              </div>
-              <div className="pt-2 border-t border-slate-800 space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-slate-400">Total Solar Array:</span><span className="text-emerald-400 font-bold">0.35 kWp</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Panel Units Needed:</span><span className="text-emerald-400 font-bold">1 units (350W)</span></div>
-              </div>
-            </div>
-
-            <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
-              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📊 System Outputs</h3>
-              <div className="space-y-3 text-xs bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                <div className="flex justify-between"><span className="text-slate-400">Gross Crop Demand:</span><span className="text-emerald-400 font-bold">35.40 mm/day</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Total Dynamic Head:</span><span className="text-slate-200 font-bold">22.1 m</span></div>
-                <div className="flex justify-between border-t border-slate-800 pt-2"><span className="text-slate-400">Annual Diesel Savings:</span><span className="text-emerald-400 font-bold">₱4,373</span></div>
+              {/* Estimated Daily Pumping Yield Curve */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve</h4>
+                <div className="h-10 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-1 gap-1">
+                  {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
+                    <div key={i} style={{ height: `${val * 2}%` }} className="flex-1 bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-400 flex justify-between">
+                  <span>06:00 AM</span>
+                  <span>12:00 PM (Peak)</span>
+                  <span>06:00 PM</span>
+                </p>
               </div>
             </div>
           </div>
