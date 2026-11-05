@@ -156,7 +156,6 @@ export function IrrigationDashboard() {
   // Land Suitability States
   const [landUseTarget, setLandUseTarget] = useState('Lowland Rice Paddy');
   const [soilDepth, setSoilDepth] = useState('> 100 cm (Deep)');
-  const [drainageClass, setDrainageClass] = useState('Moderately Well Drained');
   const [soilSlopePct, setSoilSlopePct] = useState(2);
 
   const evaluateSuitability = () => {
@@ -338,7 +337,7 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 3: Weather & Climate (WITH RESTORED REGIONAL EXTREME WEATHER LISTING) */}
+        {/* Tab 3: Weather & Climate */}
         {activeTab === 'weather' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -364,7 +363,6 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Regional Risk Panels */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
                 <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">⚠️ Historical Extreme Weather Events</h4>
@@ -406,13 +404,13 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 4: PAGASA Typhoon & PAR */}
+        {/* Tab 4: PAGASA Typhoon & PAR (WITH FULL REGIONAL EXTREME WEATHER TABLE) */}
         {activeTab === 'typhoon' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) Tracking Engine</h3>
-                <p className="text-xs text-slate-400">Yellow boundary shows official PAR polygon. Marker reflects active location ({location.name || "Custom Pin"}).</p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) & Regional Weather Matrix</h3>
+                <p className="text-xs text-slate-400">Comprehensive multi-region extreme weather, typhoon frequency, and vulnerability breakdown.</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
                 PAR Status: Normal (No Cyclones Detected)
@@ -421,7 +419,7 @@ export function IrrigationDashboard() {
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
+            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
               <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
@@ -442,6 +440,54 @@ export function IrrigationDashboard() {
                   </Popup>
                 </Marker>
               </MapContainer>
+            </div>
+
+            {/* Comprehensive Regional Extreme Weather Table */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📋 Philippine Regional Extreme Weather & Vulnerability Listing</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400">
+                      <th className="p-3">Region / Administrative Zone</th>
+                      <th className="p-3">PAGASA Climate Type</th>
+                      <th className="p-3">Annual Typhoon Exposure</th>
+                      <th className="p-3">Historical Extreme Weather & Hazard Profile</th>
+                      <th className="p-3">Agricultural Vulnerabilities</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                    <tr>
+                      <td className="p-3 font-bold text-emerald-400">CALABARZON (Region IV-A)</td>
+                      <td className="p-3">Type I (Dry Nov–Apr, Wet May–Oct)</td>
+                      <td className="p-3"><span className="text-amber-400 font-medium">Moderate-High</span> (3–4 cyclones/yr)</td>
+                      <td className="p-3">• Habagat flash floods<br/>• Taal volcanic ash/lahar buffer<br/>• El Niño dry spells</td>
+                      <td className="p-3">Upland water deficit; lowland coastal/lake plain waterlogging.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-emerald-400">Central Luzon (Region III)</td>
+                      <td className="p-3">Type I (Pronounced wet/dry seasons)</td>
+                      <td className="p-3"><span className="text-red-400 font-medium">High</span> (4–5 cyclones/yr, direct landfalls)</td>
+                      <td className="p-3">• Pampanga River Basin overflow<br/>• Extreme heat & irrigation stress<br/>• Severe Q4 typhoon winds</td>
+                      <td className="p-3">Flood inundation and siltation of paddies; dry-season water limits.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-emerald-400">Bicol Region (Region V)</td>
+                      <td className="p-3">Type II & IV (No dry season, max rainfall)</td>
+                      <td className="p-3"><span className="text-red-500 font-bold">Very High</span> (5+ destructive cyclones/yr)</td>
+                      <td className="p-3">• Catastrophic storm surges<br/>• Mayon lahar & landslide risks<br/>• Persistent soil saturation</td>
+                      <td className="p-3">Nutrient leaching, high post-harvest losses, facility damage.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-emerald-400">Western Visayas (Region VI)</td>
+                      <td className="p-3">Type I & III (Short 1–3 month dry season)</td>
+                      <td className="p-3"><span className="text-amber-400 font-medium">Moderate</span> (2–3 cyclones/yr)</td>
+                      <td className="p-3">• Agricultural drought<br/>• Jaro/Jalaur flash floods<br/>• Estuarine salinity intrusion</td>
+                      <td className="p-3">Dry-season planting delays; severe erosion on sloping terrain.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -512,7 +558,7 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 7: Land Suitability (WITH RESTORED REGIONAL CROP SUITABILITY MATRIX) */}
+        {/* Tab 7: Land Suitability */}
         {activeTab === 'land' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
