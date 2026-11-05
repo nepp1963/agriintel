@@ -11,23 +11,40 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Helper functions for dynamic coordinate conversions
+function toDMS(deg: number, isLat: boolean): string {
+  const absolute = Math.abs(deg);
+  const degrees = Math.floor(absolute);
+  const minutesNotTruncated = (absolute - degrees) * 60;
+  const minutes = Math.floor(minutesNotTruncated);
+  const seconds = ((minutesNotTruncated - minutes) * 60).toFixed(1);
+  const direction = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+  return `${degrees}° ${minutes}' ${seconds}" ${direction}`;
+}
+
+function toUTM(lat: number, lng: number): string {
+  // Approximate UTM Zone 51N representation for Philippine archipelago
+  const zone = Math.floor((lng + 180) / 6) + 1;
+  const easting = Math.round(500000 + (lng - 121) * 111000 * Math.cos((lat * Math.PI) / 180));
+  const northing = Math.round(lat * 110574);
+  return `Zone ${zone}N (E ${easting.toLocaleString()}, N ${northing.toLocaleString()})`;
+}
+
 export function FarmPlanningModule() {
-  const { location } = useLocation();
+  const { location, updateFromCoords } = useLocation();
 
-  // Current Default Location: Bacoor, Cavite (14.45896° N, 120.93851° E)
-  const currentSite = {
-    name: "Bacoor, Cavite, Calabarzon",
-    lat: 14.45896,
-    lng: 120.93851,
-    dms: `14° 27' 32.3" N, 120° 56' 18.6" E`,
-    utm: "Zone 51N (E 277,785, N 1,599,484)"
-  };
+  // Dynamic coordinates derived from global GIS location context
+  const currentLat = location.lat;
+  const currentLng = location.lng;
+  const dmsCoords = `${toDMS(currentLat, true)}, ${toDMS(currentLng, false)}`;
+  const utmCoords = toUTM(currentLat, currentLng);
 
+  // Dynamic polygon points centered around selected location
   const [gpsPoints, setGpsPoints] = useState<[number, number][]>([
-    [currentSite.lat + 0.002, currentSite.lng - 0.002],
-    [currentSite.lat + 0.002, currentSite.lng + 0.002],
-    [currentSite.lat - 0.002, currentSite.lng + 0.002],
-    [currentSite.lat - 0.002, currentSite.lng - 0.002],
+    [currentLat + 0.002, currentLng - 0.002],
+    [currentLat + 0.002, currentLng + 0.002],
+    [currentLat - 0.002, currentLng + 0.002],
+    [currentLat - 0.002, currentLng - 0.002],
   ]);
 
   const [isLoggingGps, setIsLoggingGps] = useState(false);
@@ -35,17 +52,18 @@ export function FarmPlanningModule() {
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [slopePct, setSlopePct] = useState(2);
 
-  // Map click handler to add dynamic boundary vertices
+  // Map click handler to update active site coordinates and add boundary vertices
   function MapClickHandler() {
     useMapEvents({
       click(e) {
+        updateFromCoords(e.latlng.lat, e.latlng.lng);
         setGpsPoints(prev => [...prev, [e.latlng.lat, e.latlng.lng]]);
       },
     });
     return null;
   }
 
-  // Live Smartphone GPS Node Capturer
+  // Live Mobile GPS capture handler
   const handleCaptureCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -54,8 +72,10 @@ export function FarmPlanningModule() {
     setIsLoggingGps(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const newPt: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setGpsPoints(prev => [...prev, newPt]);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        updateFromCoords(lat, lng);
+        setGpsPoints(prev => [...prev, [lat, lng]]);
         setIsLoggingGps(false);
       },
       (err) => {
@@ -68,10 +88,10 @@ export function FarmPlanningModule() {
 
   const handleClearBoundary = () => setGpsPoints([]);
 
-  // Calculated Polygon Area (Estimated Hectares)
+  // Calculated Polygon Area
   const estimatedAreaHa = gpsPoints.length >= 3 ? (gpsPoints.length * 1.85).toFixed(2) : "0.00";
 
-  // Recommendation Engine Logic
+  // Agronomic recommendation logic
   const getRecommendedIrrigation = () => {
     if (slopePct > 5) return "Drip Irrigation (Minimized Runoff on Slopes)";
     if (soilTexture.includes('Sandy')) return "Drip / Micro-Sprinkler (High Infiltration Rate)";
@@ -97,25 +117,25 @@ export function FarmPlanningModule() {
         </button>
       </div>
 
-      {/* Current Location & Geographic Coordinates Banner */}
+      {/* Dynamic Active Site & Geographic Coordinates Readout Panel */}
       <div className="bg-slate-900/80 border border-emerald-500/30 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
         <div>
-          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Active Survey Location</span>
-          <span className="text-emerald-400 font-bold text-sm block mt-0.5">📍 {currentSite.name}</span>
+          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Active GIS Site</span>
+          <span className="text-emerald-400 font-bold text-sm block mt-0.5">📍 {location.name || "Custom Pin Location"}</span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Decimal Degrees (DD)</span>
           <span className="text-slate-200 font-mono text-xs block mt-0.5">
-            {currentSite.lat.toFixed(5)}° N, {currentSite.lng.toFixed(5)}° E
+            {currentLat.toFixed(5)}° N, {currentLng.toFixed(5)}° E
           </span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">DMS Coordinates</span>
-          <span className="text-slate-200 font-mono text-xs block mt-0.5">{currentSite.dms}</span>
+          <span className="text-slate-200 font-mono text-xs block mt-0.5">{dmsCoords}</span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">UTM Grid Reference</span>
-          <span className="text-slate-200 font-mono text-xs block mt-0.5">{currentSite.utm}</span>
+          <span className="text-slate-200 font-mono text-xs block mt-0.5">{utmCoords}</span>
         </div>
       </div>
 
@@ -188,7 +208,7 @@ export function FarmPlanningModule() {
           </div>
         </div>
 
-        {/* Right Column: Interactive Map & Survey Output */}
+        {/* Right Column: Interactive GIS Map & Dynamic Marker */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
             <div className="flex justify-between items-center mb-2">
@@ -200,8 +220,8 @@ export function FarmPlanningModule() {
 
             <div className="w-full rounded-lg overflow-hidden border border-slate-800" style={{ height: '320px' }}>
               <MapContainer
-                center={[currentSite.lat, currentSite.lng]}
-                zoom={15}
+                center={[currentLat, currentLng]}
+                zoom={14}
                 style={{ height: '100%', width: '100%' }}
               >
                 <MapClickHandler />
@@ -215,19 +235,20 @@ export function FarmPlanningModule() {
                     pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3, weight: 2 }}
                   />
                 )}
-                <Marker position={[currentSite.lat, currentSite.lng]}>
+                <Marker position={[currentLat, currentLng]}>
                   <Popup>
                     <div className="text-xs p-1 space-y-1">
-                      <strong className="text-slate-800 block border-b pb-1 font-bold">📍 Active Field Station</strong>
-                      <div><strong>Site:</strong> {currentSite.name}</div>
-                      <div><strong>Coords:</strong> {currentSite.lat.toFixed(5)}° N, {currentSite.lng.toFixed(5)}° E</div>
-                      <div><strong>DMS:</strong> {currentSite.dms}</div>
+                      <strong className="text-slate-800 block border-b pb-1 font-bold">📍 Selected Site Pin</strong>
+                      <div><strong>Location:</strong> {location.name || "Custom Location"}</div>
+                      <div><strong>Coords:</strong> {currentLat.toFixed(5)}° N, {currentLng.toFixed(5)}° E</div>
+                      <div><strong>DMS:</strong> {dmsCoords}</div>
+                      <div><strong>UTM:</strong> {utmCoords}</div>
                     </div>
                   </Popup>
                 </Marker>
               </MapContainer>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2">* Click anywhere on the interactive map to manually pin survey points or log current Mobile GPS coordinates.</p>
+            <p className="text-[10px] text-slate-500 mt-2">* Click anywhere on the map to pin a new site. DD, DMS, and UTM coordinates will recalculate automatically across the entire suite.</p>
           </div>
 
           {/* Generated Farm Engineering Recommendations */}
