@@ -308,7 +308,6 @@ export function IrrigationDashboard() {
     'spis' | 'gis' | 'weather' | 'typhoon' | 'phivolcs' | 'watershed' | 'land' | 'soil' | 'farmPlan'
   >('spis');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [accentColor, setAccentColor] = useState<string>('#10b981');
   const { location, updateFromCoords } = useLocation();
 
   const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: number) => void) => {
@@ -530,16 +529,6 @@ export function IrrigationDashboard() {
             </span>
             <div className="flex items-center gap-2 text-xs">
               <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Theme:</span>
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
-                {['#10b981', '#06b6d4', '#6366f1', '#a855f7', '#eab308', '#f97316'].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setAccentColor(color)}
-                    style={{ backgroundColor: color }}
-                    className={`w-3.5 h-3.5 rounded-full transition-transform ${accentColor === color ? 'scale-125 ring-2 ring-white' : 'opacity-80 hover:opacity-100'}`}
-                  />
-                ))}
-              </div>
               <button 
                 onClick={() => setTheme('dark')} 
                 className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-200 text-slate-700'}`}
