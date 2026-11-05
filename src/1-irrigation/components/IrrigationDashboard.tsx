@@ -171,7 +171,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     ]
   },
   'Region IX (Zamboanga Peninsula)': {
-    name: 'Region IX (Zamboanga Peninsula)',
+    name: 'Zamboanga Peninsula (Region IX)',
     lat: 7.9042,
     lng: 123.2505,
     climateType: 'Type IV (Evenly distributed rainfall throughout year)',
@@ -184,7 +184,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     ]
   },
   'Region X (Northern Mindanao)': {
-    name: 'Region X (Northern Mindanao)',
+    name: 'Northern Mindanao (Region X)',
     lat: 8.2280,
     lng: 124.2452,
     climateType: 'Type III & IV (No pronounced dry season)',
@@ -634,8 +634,10 @@ export function IrrigationDashboard() {
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">APPLICATION METHOD</label>
                   <select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
                     <option value="Surface Flooding (45% Eff)">Surface Flooding (45% Eff)</option>
-                    <option value="Drip Irrigation (90% Eff)">Drip Irrigation (90% Eff)</option>
+                    <option value="Furrow Irrigation (60% Eff)">Furrow Irrigation (60% Eff)</option>
+                    <option value="Sprinkler Irrigation (75% Eff)">Sprinkler Irrigation (75% Eff)</option>
                     <option value="Micro-Sprinkler (75% Eff)">Micro-Sprinkler (75% Eff)</option>
+                    <option value="Drip Irrigation (90% Eff)">Drip Irrigation (90% Eff)</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -721,7 +723,7 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Bottom Analytics Section (Doubled Graph Heights) */}
+            {/* Bottom Analytics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* TDH Breakdown Pie Graph Card */}
