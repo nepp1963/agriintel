@@ -15,14 +15,12 @@ const PAR_POLYGON_COORDS: [number, number][] = [
   [21.0, 120.0],
 ];
 
-// Component to handle dynamic map center AND zoom level synchronization
 function SyncedMapController({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   map.setView(center, zoom);
   return null;
 }
 
-// Map event listener to broadcast zoom and click updates back to LocationContext
 function MapEventsHandler({ onZoomChange, onClickChange }: { onZoomChange?: (z: number) => void; onClickChange?: (lat: number, lng: number) => void }) {
   useMapEvents({
     zoomend(e) {
@@ -42,9 +40,9 @@ export function IrrigationDashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const { location, updateFromCoords } = useLocation();
 
-  // Shared map state: zoom level & view mode (satellite vs street map)
+  // Shared map state: zoom level & view mode toggle
   const [sharedZoom, setSharedZoom] = useState<number>(13);
-  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
+  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('street');
 
   // Input states for SPIS Irrigation
   const [regionPreset, setRegionPreset] = useState('Southern Luzon (Batangas)');
@@ -97,7 +95,7 @@ export function IrrigationDashboard() {
 
   const suitabilityResult = evaluateSuitability();
 
-  // Tile Providers
+  // Dynamic Tile URLs & Attributions for Toggle
   const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community";
 
@@ -111,7 +109,7 @@ export function IrrigationDashboard() {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header & Navigation Bar */}
+        {/* Top Header & Global Mode Switch */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
@@ -129,19 +127,19 @@ export function IrrigationDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Global Map Layer Toggle Switch */}
+            {/* Plain Map vs Satellite Mode Toggle */}
             <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
               <button
-                onClick={() => setMapViewMode('satellite')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setMapViewMode('street')}
+                className={`px-3 py-1.5 rounded-md transition-all font-medium ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                🛰️ Satellite
+                🗺️ Plain Map
               </button>
               <button
-                onClick={() => setMapViewMode('street')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setMapViewMode('satellite')}
+                className={`px-3 py-1.5 rounded-md transition-all font-medium ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                🗺️ Map View
+                🛰️ Satellite
               </button>
             </div>
 
@@ -240,7 +238,7 @@ export function IrrigationDashboard() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🗺️ GIS Layer & Coordinate Selector</h3>
-                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | Zoom: <span className="text-emerald-400 font-mono">{sharedZoom}x</span></p>
+                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | Mode: <span className="text-emerald-400 uppercase font-mono">{mapViewMode}</span></p>
               </div>
               <div className="w-full md:w-72">
                 <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); updateFromCoords(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
@@ -255,7 +253,7 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution={activeAttribution} url={activeTileUrl} />
+                <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>Selected Location: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
@@ -267,7 +265,7 @@ export function IrrigationDashboard() {
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Climate Zones & Weather Map</h3>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Climate Zones & Station Map</h3>
                 <p className="text-xs text-slate-400">Viewing climate normals for: <strong className="text-emerald-400">{location.name || "Selected Location"}</strong> ({location.lat.toFixed(3)}°N, {location.lng.toFixed(3)}°E)</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
@@ -279,7 +277,7 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution={activeAttribution} url={activeTileUrl} />
+                <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>Weather Grid Station: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
@@ -303,7 +301,7 @@ export function IrrigationDashboard() {
               <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution={activeAttribution} url={activeTileUrl} />
+                <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 
                 <Polygon
                   positions={PAR_POLYGON_COORDS}
@@ -343,7 +341,7 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution={activeAttribution} url={activeTileUrl} />
+                <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
                 <Marker position={[location.lat, location.lng]}><Popup>Geohazard Check: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
