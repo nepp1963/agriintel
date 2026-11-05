@@ -263,7 +263,7 @@ export function IrrigationDashboard() {
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // Input states for SPIS Irrigation
+  // Input states for SPIS Irrigation (Clean 4-card layout)
   const [regionPreset, setRegionPreset] = useState('Southern Luzon (Batangas)');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState(31.5);
@@ -336,7 +336,7 @@ export function IrrigationDashboard() {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header */}
+        {/* Top Header - Clean Matching Layout */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
@@ -389,7 +389,7 @@ export function IrrigationDashboard() {
           ))}
         </div>
 
-        {/* Tab 1: SPIS Irrigation */}
+        {/* Tab 1: SPIS Irrigation (Clean 4-Card Layout Matching First Screenshot) */}
         {activeTab === 'spis' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
@@ -413,6 +413,7 @@ export function IrrigationDashboard() {
                 <div><label className="text-[11px] text-slate-400 block mb-1">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => setSolarRad(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
               </div>
             </div>
+
             <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
               <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">💧 Irrigation & Hydraulics</h3>
               <div><label className="text-[11px] text-slate-400 block mb-1">APPLICATION METHOD</label><select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"><option value="Surface Flooding (45% Eff)">Surface Flooding (45% Eff)</option><option value="Drip Irrigation (90% Eff)">Drip Irrigation (90% Eff)</option></select></div>
@@ -421,6 +422,7 @@ export function IrrigationDashboard() {
                 <div><label className="text-[11px] text-slate-400 block mb-1">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => setStaticLift(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
               </div>
             </div>
+
             <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
               <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">☀️ SPIS Solar PV Sizing</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -432,6 +434,7 @@ export function IrrigationDashboard() {
                 <div className="flex justify-between"><span className="text-slate-400">Panel Units Needed:</span><span className="text-emerald-400 font-bold">1 units (350W)</span></div>
               </div>
             </div>
+
             <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-4`}>
               <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📊 System Outputs</h3>
               <div className="space-y-3 text-xs bg-slate-950 p-3.5 rounded-xl border border-slate-800">
@@ -540,7 +543,7 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 4: PAGASA Typhoon & PAR (WITH FULL NATIONWIDE REGIONAL TABLE) */}
+        {/* Tab 4: PAGASA Typhoon & PAR */}
         {activeTab === 'typhoon' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
