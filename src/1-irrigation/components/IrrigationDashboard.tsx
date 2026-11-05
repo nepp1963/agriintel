@@ -256,6 +256,17 @@ export function IrrigationDashboard() {
   const [accentColor, setAccentColor] = useState<string>('#10b981'); // Emerald default
   const { location, updateFromCoords } = useLocation();
 
+  // Helper for numeric inputs so clearing an input field does not leave a stuck '0'
+  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: number) => void) => {
+    const val = e.target.value;
+    if (val === '') {
+      setter('' as any);
+    } else {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) setter(parsed);
+    }
+  };
+
   // Selected Regional Intelligence Preset
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
@@ -267,37 +278,46 @@ export function IrrigationDashboard() {
   // Advanced SPIS Inputs
   const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
-  const [temp, setTemp] = useState(31.5);
-  const [solarRad, setSolarRad] = useState(21);
+  const [temp, setTemp] = useState<number | ''>(31.5);
+  const [solarRad, setSolarRad] = useState<number | ''>(21);
   const [phenologicalStage, setPhenologicalStage] = useState('Mid-Season Stage (Kc: 1.2)');
   const [soilTexture, setSoilTexture] = useState('Heavy Clay (AWHC: 180 mm/m)');
 
   const [appMethod, setAppMethod] = useState('Surface Flooding (45% Eff)');
-  const [flowRate, setFlowRate] = useState(5); // L/s
-  const [staticLift, setStaticLift] = useState(12);
-  const [pipeLength, setPipeLength] = useState(150);
-  const [pipeDiameter, setPipeDiameter] = useState(75);
-  const [minorLossPct, setMinorLossPct] = useState(10);
-  const [opPressure, setOpPressure] = useState(10);
+  const [flowRate, setFlowRate] = useState<number | ''>(5); // L/s
+  const [staticLift, setStaticLift] = useState<number | ''>(12);
+  const [pipeLength, setPipeLength] = useState<number | ''>(150);
+  const [pipeDiameter, setPipeDiameter] = useState<number | ''>(75);
+  const [minorLossPct, setMinorLossPct] = useState<number | ''>(10);
+  const [opPressure, setOpPressure] = useState<number | ''>(10);
 
   // Solar & BoS Sizing Inputs
-  const [peakSunHours, setPeakSunHours] = useState(5.2);
+  const [peakSunHours, setPeakSunHours] = useState<number | ''>(5.2);
   const [solarSpecWatt, setSolarSpecWatt] = useState<number>(350); // Watts
   const [selectedDcVoltage, setSelectedDcVoltage] = useState<number>(48); // 12, 24, or 48 VDC
   const [batteryAh, setBatteryAh] = useState<number>(200); // 100, 200, or 314 Ah
 
-  const [dieselPrice, setDieselPrice] = useState(60);
-  const [annualDays, setAnnualDays] = useState(240);
+  const [dieselPrice, setDieselPrice] = useState<number | ''>(60);
+  const [annualDays, setAnnualDays] = useState<number | ''>(240);
+
+  // Safely fallback empty inputs to numbers for calculations
+  const numFlowRate = Number(flowRate) || 0;
+  const numStaticLift = Number(staticLift) || 0;
+  const numPipeLength = Number(pipeLength) || 0;
+  const numPipeDiameter = Number(pipeDiameter) || 1;
+  const numMinorLossPct = Number(minorLossPct) || 0;
+  const numOpPressure = Number(opPressure) || 0;
+  const numPeakSunHours = Number(peakSunHours) || 0;
 
   // Hydraulics & TDH Calculations
-  const frictionLossNum = Number(((pipeLength * 0.02) / (pipeDiameter / 1000)).toFixed(1));
-  const minorLossNum = Number(((staticLift + frictionLossNum) * (minorLossPct / 100)).toFixed(1));
-  const totalTDHNum = Number((staticLift + frictionLossNum + minorLossNum + opPressure).toFixed(1));
+  const frictionLossNum = Number(((numPipeLength * 0.02) / (numPipeDiameter / 1000)).toFixed(1));
+  const minorLossNum = Number(((numStaticLift + frictionLossNum) * (numMinorLossPct / 100)).toFixed(1));
+  const totalTDHNum = Math.max(0.1, Number((numStaticLift + frictionLossNum + minorLossNum + numOpPressure).toFixed(1)));
   
   // Daily Volume & Energy Calculations
-  const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1); // m3/day
+  const dailyYieldVal = (numFlowRate * 3.6 * numPeakSunHours * 1.3).toFixed(1); // m3/day
   
-  const hydraulicPowerKw = (9.81 * flowRate * totalTDHNum) / 1000;
+  const hydraulicPowerKw = (9.81 * numFlowRate * totalTDHNum) / 1000;
   const pumpEfficiency = 0.45; // 45% overall motor/pump efficiency
   const requiredElectricalKw = hydraulicPowerKw / pumpEfficiency;
 
@@ -306,17 +326,17 @@ export function IrrigationDashboard() {
   const calculatedPanelsCount = Math.max(1, Math.ceil((totalSolarKwRequired * 1000) / solarSpecWatt));
 
   // 2. Dynamic LiFePO4 Battery Sizing
-  const dailyEnergyWh = (requiredElectricalKw * 1000) * peakSunHours;
+  const dailyEnergyWh = (requiredElectricalKw * 1000) * numPeakSunHours;
   const dodFactor = 0.80;
   const totalWhCapacityNeeded = dailyEnergyWh / dodFactor;
   const requiredAhAtSystemVoltage = totalWhCapacityNeeded / selectedDcVoltage;
   const calculatedBatteriesCount = Math.max(1, Math.ceil(requiredAhAtSystemVoltage / batteryAh));
 
   // Conic gradient calculations for TDH Pie Chart
-  const pStatic = (staticLift / totalTDHNum) * 100;
+  const pStatic = (numStaticLift / totalTDHNum) * 100;
   const pFriction = (frictionLossNum / totalTDHNum) * 100;
   const pMinor = (minorLossNum / totalTDHNum) * 100;
-  const pPress = (opPressure / totalTDHNum) * 100;
+  const pPress = (numOpPressure / totalTDHNum) * 100;
 
   const c1 = pStatic;
   const c2 = c1 + pFriction;
@@ -330,14 +350,14 @@ export function IrrigationDashboard() {
   )`;
 
   // Watershed Hydrology States
-  const [rainfallDepth, setRainfallDepth] = useState(75);
-  const [curveNumber, setCurveNumber] = useState(75);
+  const [rainfallDepth, setRainfallDepth] = useState<number | ''>(75);
+  const [curveNumber, setCurveNumber] = useState<number | ''>(75);
   const [hydrologicGroup, setHydrologicGroup] = useState('Group B (Moderate Infiltration)');
-  const [tcHours, setTcHours] = useState(2.4);
+  const [tcHours, setTcHours] = useState<number | ''>(2.4);
 
   const computeRunoff = () => {
-    const P = rainfallDepth / 25.4;
-    const S = 1000 / curveNumber - 10;
+    const P = (Number(rainfallDepth) || 0) / 25.4;
+    const S = 1000 / (Number(curveNumber) || 1) - 10;
     const Ia = 0.2 * S;
     if (P <= Ia) return "0.00";
     const Qin = Math.pow(P - Ia, 2) / (P - Ia + S);
@@ -347,10 +367,10 @@ export function IrrigationDashboard() {
   // Land Suitability States
   const [landUseTarget, setLandUseTarget] = useState('Lowland Rice Paddy');
   const [soilDepth, setSoilDepth] = useState('> 100 cm (Deep)');
-  const [soilSlopePct, setSoilSlopePct] = useState(2);
+  const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(2);
 
   const evaluateSuitability = () => {
-    if (soilSlopePct > 8) return { class: 'S3 - Marginally Suitable', note: 'Slope limitation (> 8%) requires contouring or terracing.' };
+    if ((Number(soilSlopePct) || 0) > 8) return { class: 'S3 - Marginally Suitable', note: 'Slope limitation (> 8%) requires contouring or terracing.' };
     if (soilDepth.includes('Shallow')) return { class: 'S2 - Moderately Suitable', note: 'Restricted effective soil depth.' };
     return { class: 'S1 - Highly Suitable', note: 'No severe topography, soil depth, or drainage limitations detected.' };
   };
@@ -488,8 +508,8 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TEMP (°C)</label><input type="number" value={temp} onChange={(e) => setTemp(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => setSolarRad(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TEMP (°C)</label><input type="number" value={temp} onChange={(e) => handleNumberInput(e, setTemp)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => handleNumberInput(e, setSolarRad)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PHENOLOGICAL STAGE (Kc)</label>
@@ -520,16 +540,16 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FLOW (L/S)</label><input type="number" value={flowRate} onChange={(e) => setFlowRate(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => setStaticLift(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FLOW (L/S)</label><input type="number" value={flowRate} onChange={(e) => handleNumberInput(e, setFlowRate)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => handleNumberInput(e, setStaticLift)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LENGTH (M)</label><input type="number" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DIAM (MM)</label><input type="number" value={pipeDiameter} onChange={(e) => setPipeDiameter(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LENGTH (M)</label><input type="number" value={pipeLength} onChange={(e) => handleNumberInput(e, setPipeLength)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DIAM (MM)</label><input type="number" value={pipeDiameter} onChange={(e) => handleNumberInput(e, setPipeDiameter)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">MINOR LOSS (%)</label><input type="number" value={minorLossPct} onChange={(e) => setMinorLossPct(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">OP. PRESS (M)</label><input type="number" value={opPressure} onChange={(e) => setOpPressure(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">MINOR LOSS (%)</label><input type="number" value={minorLossPct} onChange={(e) => handleNumberInput(e, setMinorLossPct)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">OP. PRESS (M)</label><input type="number" value={opPressure} onChange={(e) => handleNumberInput(e, setOpPressure)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
                 </div>
               </div>
 
@@ -540,7 +560,7 @@ export function IrrigationDashboard() {
                 </h3>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PEAK SUN HOURS (PSH)</label>
-                  <input type="number" value={peakSunHours} onChange={(e) => setPeakSunHours(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <input type="number" value={peakSunHours} onChange={(e) => handleNumberInput(e, setPeakSunHours)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR PANEL SPEC (WATTAGE)</label>
@@ -589,11 +609,11 @@ export function IrrigationDashboard() {
                 </h3>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FUEL / DIESEL PRICE</label>
-                  <input type="number" value={dieselPrice} onChange={(e) => setDieselPrice(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <input type="number" value={dieselPrice} onChange={(e) => handleNumberInput(e, setDieselPrice)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">ANNUAL OP. DAYS</label>
-                  <input type="number" value={annualDays} onChange={(e) => setAnnualDays(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <input type="number" value={annualDays} onChange={(e) => handleNumberInput(e, setAnnualDays)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
                 </div>
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-1">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">DAILY YIELD</span>
@@ -602,15 +622,15 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Bottom Analytics & Curves Section with 1:1 Dimension Ratio */}
+            {/* Bottom Analytics Section (Spans Half-Width Each Across the Screen) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* TDH Breakdown Conic Pie Graph (1:1 Box Dimension) */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between aspect-square max-h-[420px]">
+              {/* TDH Breakdown Pie Graph Card (Expanded Half-Width) */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
-                <div className="flex flex-col items-center justify-center my-auto gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-6 py-4">
                   <div 
-                    className="w-36 h-36 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center"
+                    className="w-36 h-36 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center shrink-0"
                     style={{ background: tdhConicGradient }}
                   >
                     <div className="w-20 h-20 rounded-full bg-slate-950 flex flex-col items-center justify-center text-center shadow">
@@ -618,33 +638,35 @@ export function IrrigationDashboard() {
                       <span className="text-sm font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-300">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-300">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-slate-500 inline-block"></span>
-                      <span>Static Lift: <strong>{staticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
+                      <span className="w-3 h-3 rounded-full bg-slate-500 inline-block shrink-0"></span>
+                      <span>Static Lift: <strong>{numStaticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                      <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shrink-0"></span>
                       <span>Friction: <strong>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block shrink-0"></span>
                       <span>Minor: <strong>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
-                      <span>Pressure: <strong>{opPressure}m</strong> ({pPress.toFixed(1)}%)</span>
+                      <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block shrink-0"></span>
+                      <span>Pressure: <strong>{numOpPressure}m</strong> ({pPress.toFixed(1)}%)</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center">Proportional hydraulic loss distribution</div>
+                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-2">
+                  Proportional hydraulic loss distribution
+                </div>
               </div>
 
-              {/* Estimated Daily Pumping Yield Curve Bar Graph (1:1 Box Dimension) */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between aspect-square max-h-[420px]">
+              {/* Estimated Daily Pumping Yield Curve Bar Graph Card (Expanded Half-Width) */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
-                <div className="w-full my-auto flex flex-col justify-end">
-                  <div className="h-44 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-2.5 gap-1.5 pt-8">
+                <div className="w-full my-auto flex flex-col justify-end pt-4">
+                  <div className="h-40 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-3 gap-2 pt-8">
                     {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
                         <span className="text-[9px] text-emerald-400 font-mono opacity-90 group-hover:opacity-100 pb-1">{val}m³</span>
@@ -658,7 +680,9 @@ export function IrrigationDashboard() {
                     <span>06:00 PM</span>
                   </p>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center">Hourly solar PV yield distribution across operational window</div>
+                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-2">
+                  Hourly solar PV yield distribution across operational window
+                </div>
               </div>
 
             </div>
@@ -866,11 +890,11 @@ export function IrrigationDashboard() {
               <div className="space-y-3 text-xs">
                 <div>
                   <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">24-Hr Storm Rainfall Depth (mm)</span><span className="text-emerald-400 font-bold">{rainfallDepth} mm</span></div>
-                  <input type="range" min="10" max="300" value={rainfallDepth} onChange={(e) => setRainfallDepth(Number(e.target.value))} className="w-full accent-emerald-500" />
+                  <input type="range" min="10" max="300" value={Number(rainfallDepth) || 0} onChange={(e) => handleNumberInput(e, setRainfallDepth)} className="w-full accent-emerald-500" />
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Runoff Curve Number (CN)</span><span className="text-emerald-400 font-bold">{curveNumber}</span></div>
-                  <input type="range" min="40" max="98" value={curveNumber} onChange={(e) => setCurveNumber(Number(e.target.value))} className="w-full accent-emerald-500" />
+                  <input type="range" min="40" max="98" value={Number(curveNumber) || 0} onChange={(e) => handleNumberInput(e, setCurveNumber)} className="w-full accent-emerald-500" />
                 </div>
               </div>
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
@@ -890,7 +914,7 @@ export function IrrigationDashboard() {
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Time of Concentration (Tc)</span><span className="text-emerald-400 font-bold">{tcHours} hrs</span></div>
-                  <input type="range" min="0.5" max="12.0" step="0.1" value={tcHours} onChange={(e) => setTcHours(Number(e.target.value))} className="w-full accent-emerald-500" />
+                  <input type="range" min="0.5" max="12.0" step="0.1" value={Number(tcHours) || 0} onChange={(e) => handleNumberInput(e, setTcHours)} className="w-full accent-emerald-500" />
                 </div>
               </div>
             </div>
@@ -958,7 +982,7 @@ export function IrrigationDashboard() {
                 <div className="space-y-3 text-xs">
                   <div>
                     <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Terrain Slope (%)</span><span className="text-emerald-400 font-bold">{soilSlopePct}%</span></div>
-                    <input type="range" min="0" max="20" value={soilSlopePct} onChange={(e) => setSoilSlopePct(Number(e.target.value))} className="w-full accent-emerald-500" />
+                    <input type="range" min="0" max="20" value={Number(soilSlopePct) || 0} onChange={(e) => handleNumberInput(e, setSoilSlopePct)} className="w-full accent-emerald-500" />
                   </div>
                 </div>
               </div>
