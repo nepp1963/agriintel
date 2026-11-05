@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SoilSalinityModule from './SoilSalinityModule';
 import FarmPlanningModule from './FarmPlanningModule';
 import { useLocation } from '../../context/LocationContext';
@@ -300,6 +300,17 @@ export function IrrigationDashboard() {
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
+  // SPIS Inputs with Regional BSWM Soil Taxonomy Integration
+  const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
+  const [selectedSoilOrder, setSelectedSoilOrder] = useState<string>(activeRegionData.predominantSoil);
+
+  // Reactive Effect to automatically sync DA-BSWM soil order whenever region changes
+  useEffect(() => {
+    if (activeRegionData && activeRegionData.predominantSoil) {
+      setSelectedSoilOrder(activeRegionData.predominantSoil);
+    }
+  }, [selectedRegionKey]);
+
   // Helper to find and snap to the closest Philippine region when clicking the map
   const handleMapLocationSelect = (lat: number, lng: number) => {
     updateFromCoords(lat, lng);
@@ -317,18 +328,11 @@ export function IrrigationDashboard() {
 
     setSelectedRegionKey(closestKey);
     setRegionPreset(closestKey);
-    const matchedReg = REGIONAL_INTELLIGENCE[closestKey];
-    if (matchedReg) {
-      setSelectedSoilOrder(matchedReg.predominantSoil);
-    }
   };
 
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // SPIS Inputs with Regional BSWM Soil Taxonomy Integration
-  const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
-  const [selectedSoilOrder, setSelectedSoilOrder] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState<number | ''>(31.5);
   const [solarRad, setSolarRad] = useState<number | ''>(21);
@@ -537,7 +541,6 @@ export function IrrigationDashboard() {
                       const reg = REGIONAL_INTELLIGENCE[newReg];
                       if (reg) {
                         updateFromCoords(reg.lat, reg.lng);
-                        setSelectedSoilOrder(reg.predominantSoil);
                       }
                     }} 
                     className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
@@ -798,7 +801,6 @@ export function IrrigationDashboard() {
                     const reg = REGIONAL_INTELLIGENCE[key];
                     if (reg) {
                       updateFromCoords(reg.lat, reg.lng);
-                      setSelectedSoilOrder(reg.predominantSoil);
                     }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
@@ -1007,7 +1009,6 @@ export function IrrigationDashboard() {
                     const reg = REGIONAL_INTELLIGENCE[key];
                     if (reg) {
                       updateFromCoords(reg.lat, reg.lng);
-                      setSelectedSoilOrder(reg.predominantSoil);
                     }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
