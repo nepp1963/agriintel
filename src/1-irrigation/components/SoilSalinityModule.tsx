@@ -243,7 +243,7 @@ export function SoilSalinityModule({
           <span className="text-xs text-slate-400 block font-medium">REQUIRED LEACHING REQUIREMENT (LR)</span>
           <div className="text-xl font-bold text-emerald-400 mt-1">{safeLR.toFixed(2)}% Extra Water Volume</div>
           <span className="text-[11px] text-slate-500 mt-0.5 block">
-            Calculated via FAO-29 Rhodes Formula: $LR = \frac{EC_{iw}}{5(EC_e) - EC_{iw}}$
+            Calculated via FAO-29 Rhodes Formula: LR = EC_iw / (5(EC_e) - EC_iw)
           </span>
         </div>
         <div className="text-right">
