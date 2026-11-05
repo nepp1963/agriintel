@@ -264,7 +264,7 @@ export function IrrigationDashboard() {
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // Advanced SPIS Inputs with All Philippine Regions
+  // Advanced SPIS Inputs
   const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState(31.5);
@@ -273,27 +273,48 @@ export function IrrigationDashboard() {
   const [soilTexture, setSoilTexture] = useState('Heavy Clay (AWHC: 180 mm/m)');
 
   const [appMethod, setAppMethod] = useState('Surface Flooding (45% Eff)');
-  const [flowRate, setFlowRate] = useState(5);
+  const [flowRate, setFlowRate] = useState(5); // L/s
   const [staticLift, setStaticLift] = useState(12);
   const [pipeLength, setPipeLength] = useState(150);
   const [pipeDiameter, setPipeDiameter] = useState(75);
   const [minorLossPct, setMinorLossPct] = useState(10);
   const [opPressure, setOpPressure] = useState(10);
 
-  // Solar & BoS Sizing (12V, 24V, 48V; LiFePO4 batteries; 150W-600W panels)
+  // Solar & BoS Sizing Inputs (Corrected to BoS and clean Ah ratings)
   const [peakSunHours, setPeakSunHours] = useState(5.2);
-  const [solarSpec, setSolarSpec] = useState('350W (Standard Commercial)');
-  const [dcVoltage, setDcVoltage] = useState('48V DC System (Standard)');
-  const [batteryType, setBatteryType] = useState('12V 200Ah LiFePO4');
+  const [solarSpecWatt, setSolarSpecWatt] = useState<number>(350); // Watts
+  const [selectedDcVoltage, setSelectedDcVoltage] = useState<number>(48); // 12, 24, or 48 VDC
+  const [batteryAh, setBatteryAh] = useState<number>(200); // 100, 200, or 314 Ah
 
   const [dieselPrice, setDieselPrice] = useState(60);
   const [annualDays, setAnnualDays] = useState(240);
 
-  // Computed Hydraulics & Economics
+  // Hydraulics & TDH Calculations
   const frictionLossNum = Number(((pipeLength * 0.02) / (pipeDiameter / 1000)).toFixed(1));
   const minorLossNum = Number(((staticLift + frictionLossNum) * (minorLossPct / 100)).toFixed(1));
   const totalTDHNum = Number((staticLift + frictionLossNum + minorLossNum + opPressure).toFixed(1));
-  const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1);
+  
+  // Daily Volume & Energy Calculations
+  const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1); // m3/day
+  
+  // Power requirement calculation (P = rho * g * Q * H / eta)
+  // Hydraulic power (kW) = (9.81 * Flow in L/s * Head in meters) / 1000
+  const hydraulicPowerKw = (9.81 * flowRate * totalTDHNum) / 1000;
+  const pumpEfficiency = 0.45; // 45% overall motor/pump efficiency
+  const requiredElectricalKw = hydraulicPowerKw / pumpEfficiency;
+
+  // 1. Dynamic Solar Panel Sizing
+  const totalSolarKwRequired = (requiredElectricalKw * 1.25); // 25% safety & temperature derating
+  const panelWattageKw = solarSpecWatt / 1000;
+  const calculatedPanelsCount = Math.max(1, Math.ceil((totalSolarKwRequired * 1000) / solarSpecWatt));
+
+  // 2. Dynamic LiFePO4 Battery Sizing
+  // Daily Energy Demand (Wh) = Electrical Power (W) * Peak Sun Hours
+  const dailyEnergyWh = (requiredElectricalKw * 1000) * peakSunHours;
+  const dodFactor = 0.80; // 80% Depth of Discharge safety buffer for LiFePO4
+  const totalWhCapacityNeeded = dailyEnergyWh / dodFactor;
+  const requiredAhAtSystemVoltage = totalWhCapacityNeeded / selectedDcVoltage;
+  const calculatedBatteriesCount = Math.max(1, Math.ceil(requiredAhAtSystemVoltage / batteryAh));
 
   // Conic gradient calculations for TDH Pie Chart
   const pStatic = (staticLift / totalTDHNum) * 100;
@@ -442,7 +463,7 @@ export function IrrigationDashboard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               
-              {/* Card 1: Regional Climate & Crops (With All 17 Regions) */}
+              {/* Card 1: Regional Climate & Crops */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   🌱 Regional Climate & Crops
@@ -516,7 +537,7 @@ export function IrrigationDashboard() {
                 </div>
               </div>
 
-              {/* Card 3: Solar & BoS Sizing (12V, 24V, LiFePO4 batteries, 150W-600W panels) */}
+              {/* Card 3: Solar & BoS Sizing (Dynamically Sized Based on Inputs) */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   ☀️ Solar & BoS Sizing
@@ -527,30 +548,42 @@ export function IrrigationDashboard() {
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR PANEL SPEC (WATTAGE)</label>
-                  <select value={solarSpec} onChange={(e) => setSolarSpec(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="150W Compact Panel">150W Compact Panel</option>
-                    <option value="250W Standard Utility">250W Standard Utility</option>
-                    <option value="350W (Standard Commercial)">350W (Standard Commercial)</option>
-                    <option value="450W (High-Efficiency Mono)">450W (High-Efficiency Mono)</option>
-                    <option value="550W High-Power Agro">550W High-Power Agro</option>
-                    <option value="600W Ultra High-Power">600W Ultra High-Power</option>
+                  <select value={solarSpecWatt} onChange={(e) => setSolarSpecWatt(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value={150}>150W Compact Panel</option>
+                    <option value={250}>250W Standard Utility</option>
+                    <option value={350}>350W Commercial Monocrystalline</option>
+                    <option value={450}>450W High-Efficiency Mono</option>
+                    <option value={550}>550W High-Power Agro</option>
+                    <option value={600}>600W Ultra High-Power</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SYSTEM DC VOLTAGE</label>
-                  <select value={dcVoltage} onChange={(e) => setDcVoltage(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="12V DC System">12V DC System</option>
-                    <option value="24V DC System">24V DC System</option>
-                    <option value="48V DC System (Standard)">48V DC System (Standard)</option>
+                  <select value={selectedDcVoltage} onChange={(e) => setSelectedDcVoltage(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value={12}>12V DC System</option>
+                    <option value={24}>24V DC System</option>
+                    <option value={48}>48V DC System (Standard)</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LIFEPO4 BATTERY BANK SPEC</label>
-                  <select value={batteryType} onChange={(e) => setBatteryType(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="12V 100Ah LiFePO4">12V 100Ah LiFePO4</option>
-                    <option value="12V 200Ah LiFePO4">12V 200Ah LiFePO4</option>
-                    <option value="12V 314Ah LiFePO4">12V 314Ah LiFePO4</option>
+                  <select value={batteryAh} onChange={(e) => setBatteryAh(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                    <option value={100}>100Ah LiFePO4</option>
+                    <option value={200}>200Ah LiFePO4</option>
+                    <option value={314}>314Ah LiFePO4</option>
                   </select>
+                </div>
+
+                {/* Automated Sizing Output Calculations */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-2 pt-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold">Panels Needed:</span>
+                    <span className="text-emerald-400 font-bold font-mono text-sm">{calculatedPanelsCount} units ({solarSpecWatt}W)</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold">Batteries Needed:</span>
+                    <span className="text-emerald-400 font-bold font-mono text-sm">{calculatedBatteriesCount} units ({batteryAh}Ah @ {selectedDcVoltage}V)</span>
+                  </div>
                 </div>
               </div>
 
