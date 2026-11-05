@@ -5,13 +5,27 @@ import { useLocation } from '../../context/LocationContext';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Complete Philippine Regional Extreme Weather & Crop Suitability Intelligence Dataset (All 17 Regions)
+// Master DA-BSWM Soil Taxonomy Orders List for the Philippines
+const ALL_PHILIPPINE_SOIL_ORDERS = [
+  'Ultisols (41.5% - Highly Weathered Red/Yellow Acid Soils)',
+  'Inceptisols (13.7% - Young Volcanic & Alluvial Soils)',
+  'Alfisols (High Base Status Alluvial/Terrace Soils)',
+  'Vertisols (Swelling Heavy Clay/Black Paddy Soils)',
+  'Entisols (Recent Floodplain & Coastal Alluvial Soils)',
+  'Oxisols (Highly Leached Upland Lateritic Soils)',
+  'Mollisols (Organic-Rich Fertile Highland Soils)',
+  'Andisols (Volcanic Ash-Derived Rich Soils)',
+  'Histosols (Peat/Organic Marsh & Mangrove Soils)'
+];
+
+// Complete Philippine Regional Extreme Weather, Soil Types & Crop Suitability Dataset (All 17 Regions)
 const REGIONAL_INTELLIGENCE: Record<string, {
   name: string;
   lat: number;
   lng: number;
   climateType: string;
   typhoonFrequency: string;
+  predominantSoil: string;
   extremeEvents: string[];
   cropSuitability: { crop: string; rating: string; advisory: string }[];
 }> = {
@@ -21,6 +35,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.3308,
     climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
     typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    predominantSoil: 'Alfisols (High Base Status Alluvial/Terrace Soils)',
     extremeEvents: ['Prolonged summer drought', 'Monsoon flash floods', 'Coastal storm surges'],
     cropSuitability: [
       { crop: 'Lowland Rice & Tobacco', rating: 'S1 - Highly Suitable', advisory: 'Thrives during dry season with regulated irrigation.' },
@@ -33,6 +48,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 121.7270,
     climateType: 'Type III (Seasons not very pronounced, relatively dry)',
     typhoonFrequency: 'Very High (Direct entry corridor for Super Typhoons)',
+    predominantSoil: 'Vertisols (Swelling Heavy Clay/Black Paddy Soils)',
     extremeEvents: ['Catastrophic Cagayan River Basin flooding', 'Severe typhoons & sustained gales', 'Agricultural drought'],
     cropSuitability: [
       { crop: 'Corn & Lowland Rice', rating: 'S1 - Highly Suitable', advisory: 'Major corn granary; monitor fourth-quarter typhoon risks.' },
@@ -45,6 +61,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.6896,
     climateType: 'Type I (Pronounced dry and wet seasons)',
     typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    predominantSoil: 'Vertisols (Swelling Heavy Clay/Black Paddy Soils)',
     extremeEvents: ['Pampanga River Basin agricultural inundation', 'Severe summer heat & irrigation water deficits', 'Typhoon wind damage'],
     cropSuitability: [
       { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Rice granary; double-cropping highly viable.' },
@@ -57,6 +74,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.93851,
     climateType: 'Type I (Two pronounced seasons)',
     typhoonFrequency: 'Moderate - High (3 to 4 Cyclones / year)',
+    predominantSoil: 'Ultisols (41.5% - Highly Weathered Red/Yellow Acid Soils)',
     extremeEvents: ['Monsoon Surge Flash Floods (Habagat)', 'Volcanic ashfall & lahar risks (Taal)', 'Prolonged dry spells (El Niño)'],
     cropSuitability: [
       { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Requires drainage management during peak wet season.' },
@@ -69,6 +87,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 121.1812,
     climateType: 'Type I & III (Short dry season)',
     typhoonFrequency: 'Moderate (3 Cyclones / year)',
+    predominantSoil: 'Entisols (Recent Floodplain & Coastal Alluvial Soils)',
     extremeEvents: ['Coastal storm surges', 'Flash floods in island river basins', 'Seasonal dry-season water stress'],
     cropSuitability: [
       { crop: 'Cashew, Coconut & Rice', rating: 'S1 - Highly Suitable', advisory: 'Thrives across Palawan and Mindoro alluvial valleys.' },
@@ -81,6 +100,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 123.1948,
     climateType: 'Type II & IV (No dry season, pronounced max rainfall)',
     typhoonFrequency: 'Very High (Direct Typhoon Belt: 5+ Cyclones / year)',
+    predominantSoil: 'Andisols (Volcanic Ash-Derived Rich Soils)',
     extremeEvents: ['Super Typhoon wind damage & storm surges', 'Volcanic lahar flows (Mayon)', 'Continuous soil saturation'],
     cropSuitability: [
       { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Resilient perennial crops suited for continuous rainfall.' },
@@ -93,6 +113,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 122.5621,
     climateType: 'Type I & III (Short dry season 1–3 months)',
     typhoonFrequency: 'Moderate (2 to 3 Cyclones / year)',
+    predominantSoil: 'Inceptisols (13.7% - Young Volcanic & Alluvial Soils)',
     extremeEvents: ['Agricultural drought (El Niño)', 'Riverine flooding (Jaro/Jalaur basins)', 'Salinity intrusion'],
     cropSuitability: [
       { crop: 'Sugarcane & Grains', rating: 'S1 - Highly Suitable', advisory: 'Extremely productive in well-drained alluvial plains.' },
@@ -105,6 +126,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 123.8854,
     climateType: 'Type III (Seasons not very pronounced)',
     typhoonFrequency: 'Low - Moderate (1 to 2 Cyclones / year)',
+    predominantSoil: 'Mollisols (Organic-Rich Fertile Highland Soils)',
     extremeEvents: ['Severe El Niño water scarcity', 'Karst aquifer drought vulnerability', 'Localized coastal flash floods'],
     cropSuitability: [
       { crop: 'Corn, Cassava & Mango', rating: 'S1 - Highly Suitable', advisory: 'Well-adapted to rolling limestone-derived soils.' },
@@ -117,6 +139,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 125.0047,
     climateType: 'Type II & IV (No dry season, very high rainfall)',
     typhoonFrequency: 'Very High (Primary landfall zone for major typhoons)',
+    predominantSoil: 'Inceptisols (13.7% - Young Volcanic & Alluvial Soils)',
     extremeEvents: ['Catastrophic storm surges (Haiyan-type)', 'Continuous torrential rainfall & landslides', 'Severe river siltation'],
     cropSuitability: [
       { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Primary livelihood crop resilient to high moisture.' },
@@ -129,6 +152,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 123.2505,
     climateType: 'Type IV (Evenly distributed rainfall throughout year)',
     typhoonFrequency: 'Low (Outside main typhoon belt)',
+    predominantSoil: 'Ultisols (41.5% - Highly Weathered Red/Yellow Acid Soils)',
     extremeEvents: ['Localized flash floods', 'Prolonged dry spells during regional drought', 'Pest and disease outbreaks in rubber'],
     cropSuitability: [
       { crop: 'Rubber, Coconut & Fruit Trees', rating: 'S1 - Highly Suitable', advisory: 'Thrives in stable equatorial climate.' },
@@ -141,6 +165,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 124.2452,
     climateType: 'Type III & IV (No pronounced dry season)',
     typhoonFrequency: 'Low (Infrequent direct strikes)',
+    predominantSoil: 'Andisols (Volcanic Ash-Derived Rich Soils)',
     extremeEvents: ['Upland flash floods (Sendong-type)', 'Prolonged dry spells', 'Landslides in mountainous agricultural zones'],
     cropSuitability: [
       { crop: 'Pineapple, Banana & Corn', rating: 'S1 - Highly Suitable', advisory: 'Major commercial agro-industrial zone (Bukidnon plateau).' },
@@ -153,6 +178,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 125.4553,
     climateType: 'Type IV (Rainfall evenly distributed)',
     typhoonFrequency: 'Very Low (Generally typhoon-free)',
+    predominantSoil: 'Ultisols (41.5% - Highly Weathered Red/Yellow Acid Soils)',
     extremeEvents: ['Strong convective thunderstorms', 'El Niño agricultural moisture stress', 'Seismic activity & landslides'],
     cropSuitability: [
       { crop: 'Cavendish Banana, Durian & Cacao', rating: 'S1 - Highly Suitable', advisory: 'Prime export fruit production zone.' },
@@ -165,6 +191,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 124.6053,
     climateType: 'Type IV (Rainfall evenly distributed)',
     typhoonFrequency: 'Very Low (Typhoon-free zone)',
+    predominantSoil: 'Mollisols (Organic-Rich Fertile Highland Soils)',
     extremeEvents: ['Agricultural drought / El Niño grain loss', 'River basin flooding (Cotabato marshlands)', 'Convective flash floods'],
     cropSuitability: [
       { crop: 'Corn, Rice & Palm Oil', rating: 'S1 - Highly Suitable', advisory: 'Highly productive agricultural plains (Cotabato/Koronadal).' },
@@ -177,6 +204,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 125.5312,
     climateType: 'Type II (No dry season, maximum rainfall in winter)',
     typhoonFrequency: 'Moderate - High (Eastern seaboard exposure)',
+    predominantSoil: 'Inceptisols (13.7% - Young Volcanic & Alluvial Soils)',
     extremeEvents: ['Severe riverine flooding (Agusan River Basin)', 'Continuous heavy winter monsoon rains', 'Coastal storm surges'],
     cropSuitability: [
       { crop: 'Timber, Palm Oil & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Ideal forestry and agro-forestry climate.' },
@@ -189,6 +217,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.5960,
     climateType: 'Type I & III (Pronounced dry/wet with cool high-altitude climate)',
     typhoonFrequency: 'High (Mountainous windward exposure)',
+    predominantSoil: 'Inceptisols (13.7% - Young Volcanic & Alluvial Soils)',
     extremeEvents: ['Catastrophic mountain landslides & road slips', 'Severe typhoon wind & rain battering', 'Sub-zero frost events in high peaks'],
     cropSuitability: [
       { crop: 'Temperate Vegetables (Potato/Cabbage)', rating: 'S1 - Highly Suitable', advisory: 'Requires terraced farming and soil erosion control.' },
@@ -201,6 +230,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.9842,
     climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
     typhoonFrequency: 'Moderate - High (Direct urban exposure)',
+    predominantSoil: 'Vertisols (Swelling Heavy Clay/Black Paddy Soils)',
     extremeEvents: ['Urban tidal & monsoon flooding (Marikina/Pasig basins)', 'Severe heat island effect', 'Typhoon windstorm disruptions'],
     cropSuitability: [
       { crop: 'Urban Agriculture & Hydroponics', rating: 'S1 - Highly Suitable', advisory: 'Controlled environment agriculture and rooftop farming.' },
@@ -213,6 +243,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 124.2431,
     climateType: 'Type IV (Rainfall evenly distributed)',
     typhoonFrequency: 'Very Low (Typhoon-free)',
+    predominantSoil: 'Histosols (Peat/Organic Marsh & Mangrove Soils)',
     extremeEvents: ['Lingering Liguasan Marsh seasonal flooding', 'Prolonged dry spells', 'River siltation'],
     cropSuitability: [
       { crop: 'Corn, Cassava & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Extensive alluvial agricultural potential.' },
@@ -253,10 +284,9 @@ export function IrrigationDashboard() {
     'spis' | 'gis' | 'weather' | 'typhoon' | 'phivolcs' | 'watershed' | 'land' | 'soil' | 'farmPlan'
   >('spis');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [accentColor, setAccentColor] = useState<string>('#10b981'); // Emerald default
+  const [accentColor, setAccentColor] = useState<string>('#10b981');
   const { location, updateFromCoords } = useLocation();
 
-  // Helper for numeric inputs so clearing an input field does not leave a stuck '0'
   const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: number) => void) => {
     const val = e.target.value;
     if (val === '') {
@@ -267,16 +297,15 @@ export function IrrigationDashboard() {
     }
   };
 
-  // Selected Regional Intelligence Preset
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
-  // Map view mode toggle ('street' vs 'satellite')
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
-  // Advanced SPIS Inputs
+  // SPIS Inputs with Regional BSWM Soil Taxonomy Integration
   const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
+  const [selectedSoilOrder, setSelectedSoilOrder] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState<number | ''>(31.5);
   const [solarRad, setSolarRad] = useState<number | ''>(21);
@@ -284,23 +313,21 @@ export function IrrigationDashboard() {
   const [soilTexture, setSoilTexture] = useState('Heavy Clay (AWHC: 180 mm/m)');
 
   const [appMethod, setAppMethod] = useState('Surface Flooding (45% Eff)');
-  const [flowRate, setFlowRate] = useState<number | ''>(5); // L/s
+  const [flowRate, setFlowRate] = useState<number | ''>(5);
   const [staticLift, setStaticLift] = useState<number | ''>(12);
   const [pipeLength, setPipeLength] = useState<number | ''>(150);
   const [pipeDiameter, setPipeDiameter] = useState<number | ''>(75);
   const [minorLossPct, setMinorLossPct] = useState<number | ''>(10);
   const [opPressure, setOpPressure] = useState<number | ''>(10);
 
-  // Solar & BoS Sizing Inputs
   const [peakSunHours, setPeakSunHours] = useState<number | ''>(5.2);
-  const [solarSpecWatt, setSolarSpecWatt] = useState<number>(350); // Watts
-  const [selectedDcVoltage, setSelectedDcVoltage] = useState<number>(48); // 12, 24, or 48 VDC
-  const [batteryAh, setBatteryAh] = useState<number>(200); // 100, 200, or 314 Ah
+  const [solarSpecWatt, setSolarSpecWatt] = useState<number>(350);
+  const [selectedDcVoltage, setSelectedDcVoltage] = useState<number>(48);
+  const [batteryAh, setBatteryAh] = useState<number>(200);
 
   const [dieselPrice, setDieselPrice] = useState<number | ''>(60);
   const [annualDays, setAnnualDays] = useState<number | ''>(240);
 
-  // Safely fallback empty inputs to numbers for calculations
   const numFlowRate = Number(flowRate) || 0;
   const numStaticLift = Number(staticLift) || 0;
   const numPipeLength = Number(pipeLength) || 0;
@@ -309,30 +336,25 @@ export function IrrigationDashboard() {
   const numOpPressure = Number(opPressure) || 0;
   const numPeakSunHours = Number(peakSunHours) || 0;
 
-  // Hydraulics & TDH Calculations
   const frictionLossNum = Number(((numPipeLength * 0.02) / (numPipeDiameter / 1000)).toFixed(1));
   const minorLossNum = Number(((numStaticLift + frictionLossNum) * (numMinorLossPct / 100)).toFixed(1));
   const totalTDHNum = Math.max(0.1, Number((numStaticLift + frictionLossNum + minorLossNum + numOpPressure).toFixed(1)));
   
-  // Daily Volume & Energy Calculations
-  const dailyYieldVal = (numFlowRate * 3.6 * numPeakSunHours * 1.3).toFixed(1); // m3/day
+  const dailyYieldVal = (numFlowRate * 3.6 * numPeakSunHours * 1.3).toFixed(1);
   
   const hydraulicPowerKw = (9.81 * numFlowRate * totalTDHNum) / 1000;
-  const pumpEfficiency = 0.45; // 45% overall motor/pump efficiency
+  const pumpEfficiency = 0.45;
   const requiredElectricalKw = hydraulicPowerKw / pumpEfficiency;
 
-  // 1. Dynamic Solar Panel Sizing
   const totalSolarKwRequired = (requiredElectricalKw * 1.25);
   const calculatedPanelsCount = Math.max(1, Math.ceil((totalSolarKwRequired * 1000) / solarSpecWatt));
 
-  // 2. Dynamic LiFePO4 Battery Sizing
   const dailyEnergyWh = (requiredElectricalKw * 1000) * numPeakSunHours;
   const dodFactor = 0.80;
   const totalWhCapacityNeeded = dailyEnergyWh / dodFactor;
   const requiredAhAtSystemVoltage = totalWhCapacityNeeded / selectedDcVoltage;
   const calculatedBatteriesCount = Math.max(1, Math.ceil(requiredAhAtSystemVoltage / batteryAh));
 
-  // Conic gradient calculations for TDH Pie Chart
   const pStatic = (numStaticLift / totalTDHNum) * 100;
   const pFriction = (frictionLossNum / totalTDHNum) * 100;
   const pMinor = (minorLossNum / totalTDHNum) * 100;
@@ -349,7 +371,6 @@ export function IrrigationDashboard() {
     #06b6d4 ${c3}% 100%
   )`;
 
-  // Watershed Hydrology States
   const [rainfallDepth, setRainfallDepth] = useState<number | ''>(75);
   const [curveNumber, setCurveNumber] = useState<number | ''>(75);
   const [hydrologicGroup, setHydrologicGroup] = useState('Group B (Moderate Infiltration)');
@@ -364,7 +385,6 @@ export function IrrigationDashboard() {
     return (Qin * 25.4).toFixed(2);
   };
 
-  // Land Suitability States
   const [landUseTarget, setLandUseTarget] = useState('Lowland Rice Paddy');
   const [soilDepth, setSoilDepth] = useState('> 100 cm (Deep)');
   const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(2);
@@ -377,7 +397,6 @@ export function IrrigationDashboard() {
 
   const suitabilityResult = evaluateSuitability();
 
-  // Tile Providers
   const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community";
 
@@ -411,7 +430,7 @@ export function IrrigationDashboard() {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header with Color Palette Picker */}
+        {/* Top Header */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
@@ -479,7 +498,7 @@ export function IrrigationDashboard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               
-              {/* Card 1: Regional Climate & Crops */}
+              {/* Card 1: Regional Climate & Crops (With Soil Order Selector) */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   🌱 Regional Climate & Crops
@@ -489,9 +508,13 @@ export function IrrigationDashboard() {
                   <select 
                     value={regionPreset} 
                     onChange={(e) => {
-                      setRegionPreset(e.target.value);
-                      const reg = REGIONAL_INTELLIGENCE[e.target.value];
-                      if (reg) updateFromCoords(reg.lat, reg.lng);
+                      const newReg = e.target.value;
+                      setRegionPreset(newReg);
+                      const reg = REGIONAL_INTELLIGENCE[newReg];
+                      if (reg) {
+                        updateFromCoords(reg.lat, reg.lng);
+                        setSelectedSoilOrder(reg.predominantSoil);
+                      }
                     }} 
                     className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
                   >
@@ -500,6 +523,21 @@ export function IrrigationDashboard() {
                     ))}
                   </select>
                 </div>
+
+                {/* BSWM Soil Taxonomy Selector */}
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DA-BSWM SOIL ORDER CLASSIFICATION</label>
+                  <select 
+                    value={selectedSoilOrder} 
+                    onChange={(e) => setSelectedSoilOrder(e.target.value)} 
+                    className="w-full bg-slate-950 border border-emerald-700/60 text-xs rounded-lg p-2 text-emerald-300 font-medium"
+                  >
+                    {ALL_PHILIPPINE_SOIL_ORDERS.map((soil) => (
+                      <option key={soil} value={soil}>{soil}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TARGET CROP PROFILE</label>
                   <select value={cropProfile} onChange={(e) => setCropProfile(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
@@ -622,10 +660,10 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Bottom Analytics Section (Spans Half-Width Each Across the Screen) */}
+            {/* Bottom Analytics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* TDH Breakdown Pie Graph Card (Expanded Half-Width) */}
+              {/* TDH Breakdown Pie Graph Card */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
                 <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-6 py-4">
@@ -662,7 +700,7 @@ export function IrrigationDashboard() {
                 </div>
               </div>
 
-              {/* Estimated Daily Pumping Yield Curve Bar Graph Card (Expanded Half-Width) */}
+              {/* Estimated Daily Pumping Yield Curve Bar Graph Card */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
                 <div className="w-full my-auto flex flex-col justify-end pt-4">
@@ -734,7 +772,10 @@ export function IrrigationDashboard() {
                     const key = e.target.value;
                     setSelectedRegionKey(key);
                     const reg = REGIONAL_INTELLIGENCE[key];
-                    if (reg) updateFromCoords(reg.lat, reg.lng);
+                    if (reg) {
+                      updateFromCoords(reg.lat, reg.lng);
+                      setSelectedSoilOrder(reg.predominantSoil);
+                    }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
                 >
@@ -759,11 +800,15 @@ export function IrrigationDashboard() {
               </div>
 
               <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌪️ Climatology & Typhoon Frequency</h4>
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌪️ Climatology & Soil Taxonomy</h4>
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-3 text-slate-300">
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase">Climate Classification</span>
                     <strong className="text-emerald-400 text-sm">{activeRegionData.climateType}</strong>
+                  </div>
+                  <div className="border-t border-slate-800 pt-2">
+                    <span className="text-slate-400 block text-[10px] uppercase">Predominant Regional Soil Order</span>
+                    <strong className="text-emerald-400 text-sm">{activeRegionData.predominantSoil}</strong>
                   </div>
                   <div className="border-t border-slate-800 pt-2">
                     <span className="text-slate-400 block text-[10px] uppercase">Annual Typhoon Exposure</span>
@@ -824,7 +869,6 @@ export function IrrigationDashboard() {
               </MapContainer>
             </div>
 
-            {/* Comprehensive Nationwide Regional Extreme Weather Table */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
               <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📋 Complete Nationwide Regional Extreme Weather & Vulnerability Listing (All 17 Regions)</h4>
               <div className="overflow-x-auto max-h-[500px]">
@@ -832,20 +876,20 @@ export function IrrigationDashboard() {
                   <thead className="sticky top-0 bg-slate-950 text-slate-400">
                     <tr className="border-b border-slate-800">
                       <th className="p-3">Region</th>
+                      <th className="p-3">Predominant BSWM Soil Order</th>
                       <th className="p-3">Climate Type</th>
                       <th className="p-3">Typhoon Exposure</th>
                       <th className="p-3">Historical Hazards</th>
-                      <th className="p-3">Agricultural Vulnerabilities</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
                     {Object.values(REGIONAL_INTELLIGENCE).map((reg, idx) => (
                       <tr key={idx} className="hover:bg-slate-900/40">
                         <td className="p-3 font-bold text-emerald-400">{reg.name}</td>
+                        <td className="p-3 text-slate-300">{reg.predominantSoil}</td>
                         <td className="p-3">{reg.climateType}</td>
                         <td className="p-3 font-medium text-amber-400">{reg.typhoonFrequency}</td>
                         <td className="p-3">{reg.extremeEvents.join('; ')}</td>
-                        <td className="p-3">{reg.cropSuitability.map(c => c.advisory).join(' ')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -921,7 +965,7 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 7: Land Suitability */}
+        {/* Tab 7: Land Suitability (With Soil Order Selector) */}
         {activeTab === 'land' && (
           <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -936,7 +980,10 @@ export function IrrigationDashboard() {
                     const key = e.target.value;
                     setSelectedRegionKey(key);
                     const reg = REGIONAL_INTELLIGENCE[key];
-                    if (reg) updateFromCoords(reg.lat, reg.lng);
+                    if (reg) {
+                      updateFromCoords(reg.lat, reg.lng);
+                      setSelectedSoilOrder(reg.predominantSoil);
+                    }
                   }}
                   className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
                 >
@@ -968,6 +1015,18 @@ export function IrrigationDashboard() {
                     <select value={landUseTarget} onChange={(e) => setLandUseTarget(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
                       <option value="Lowland Rice Paddy">Lowland Rice Paddy</option>
                       <option value="High-Value Commercial Vegetables">High-Value Commercial Vegetables</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Soil Order Classification</label>
+                    <select 
+                      value={selectedSoilOrder} 
+                      onChange={(e) => setSelectedSoilOrder(e.target.value)} 
+                      className="w-full bg-slate-950 border border-emerald-700/60 text-xs rounded-lg p-2 text-emerald-300 font-medium"
+                    >
+                      {ALL_PHILIPPINE_SOIL_ORDERS.map((soil) => (
+                        <option key={soil} value={soil}>{soil}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
