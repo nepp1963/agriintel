@@ -280,7 +280,7 @@ export function IrrigationDashboard() {
   const [minorLossPct, setMinorLossPct] = useState(10);
   const [opPressure, setOpPressure] = useState(10);
 
-  // Solar & BoS Sizing Inputs (Corrected to BoS and clean Ah ratings)
+  // Solar & BoS Sizing Inputs
   const [peakSunHours, setPeakSunHours] = useState(5.2);
   const [solarSpecWatt, setSolarSpecWatt] = useState<number>(350); // Watts
   const [selectedDcVoltage, setSelectedDcVoltage] = useState<number>(48); // 12, 24, or 48 VDC
@@ -297,21 +297,17 @@ export function IrrigationDashboard() {
   // Daily Volume & Energy Calculations
   const dailyYieldVal = (flowRate * 3.6 * peakSunHours * 1.3).toFixed(1); // m3/day
   
-  // Power requirement calculation (P = rho * g * Q * H / eta)
-  // Hydraulic power (kW) = (9.81 * Flow in L/s * Head in meters) / 1000
   const hydraulicPowerKw = (9.81 * flowRate * totalTDHNum) / 1000;
   const pumpEfficiency = 0.45; // 45% overall motor/pump efficiency
   const requiredElectricalKw = hydraulicPowerKw / pumpEfficiency;
 
   // 1. Dynamic Solar Panel Sizing
-  const totalSolarKwRequired = (requiredElectricalKw * 1.25); // 25% safety & temperature derating
-  const panelWattageKw = solarSpecWatt / 1000;
+  const totalSolarKwRequired = (requiredElectricalKw * 1.25);
   const calculatedPanelsCount = Math.max(1, Math.ceil((totalSolarKwRequired * 1000) / solarSpecWatt));
 
   // 2. Dynamic LiFePO4 Battery Sizing
-  // Daily Energy Demand (Wh) = Electrical Power (W) * Peak Sun Hours
   const dailyEnergyWh = (requiredElectricalKw * 1000) * peakSunHours;
-  const dodFactor = 0.80; // 80% Depth of Discharge safety buffer for LiFePO4
+  const dodFactor = 0.80;
   const totalWhCapacityNeeded = dailyEnergyWh / dodFactor;
   const requiredAhAtSystemVoltage = totalWhCapacityNeeded / selectedDcVoltage;
   const calculatedBatteriesCount = Math.max(1, Math.ceil(requiredAhAtSystemVoltage / batteryAh));
@@ -537,7 +533,7 @@ export function IrrigationDashboard() {
                 </div>
               </div>
 
-              {/* Card 3: Solar & BoS Sizing (Dynamically Sized Based on Inputs) */}
+              {/* Card 3: Solar & BoS Sizing */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   ☀️ Solar & BoS Sizing
@@ -574,7 +570,6 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
 
-                {/* Automated Sizing Output Calculations */}
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-2 pt-2.5">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 text-[10px] uppercase font-bold">Panels Needed:</span>
@@ -607,14 +602,13 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Bottom Analytics & Curves Section */}
+            {/* Bottom Analytics & Curves Section with 1:1 Dimension Ratio */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* TDH Breakdown Conic Pie Graph */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+              {/* TDH Breakdown Conic Pie Graph (1:1 Box Dimension) */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between aspect-square max-h-[420px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
-                <div className="flex flex-col sm:flex-row items-center justify-around gap-6">
-                  {/* Conic Gradient CSS Pie Chart */}
+                <div className="flex flex-col items-center justify-center my-auto gap-4">
                   <div 
                     className="w-36 h-36 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center"
                     style={{ background: tdhConicGradient }}
@@ -624,44 +618,47 @@ export function IrrigationDashboard() {
                       <span className="text-sm font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
                     </div>
                   </div>
-                  {/* Legend */}
-                  <div className="space-y-2 text-xs text-slate-300">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-300">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-slate-500 inline-block"></span>
                       <span>Static Lift: <strong>{staticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
-                      <span>Friction Loss: <strong>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
+                      <span>Friction: <strong>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
-                      <span>Minor Losses: <strong>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
+                      <span>Minor: <strong>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
-                      <span>Op. Pressure: <strong>{opPressure}m</strong> ({pPress.toFixed(1)}%)</span>
+                      <span>Pressure: <strong>{opPressure}m</strong> ({pPress.toFixed(1)}%)</span>
                     </div>
                   </div>
                 </div>
+                <div className="text-[11px] text-slate-400 text-center">Proportional hydraulic loss distribution</div>
               </div>
 
-              {/* Estimated Daily Pumping Yield Curve with Values on Bars */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+              {/* Estimated Daily Pumping Yield Curve Bar Graph (1:1 Box Dimension) */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between aspect-square max-h-[420px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
-                <div className="h-28 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-2 gap-1.5 pt-6">
-                  {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
-                      <span className="text-[9px] text-emerald-400 font-mono opacity-80 group-hover:opacity-100 pb-0.5">{val}m³</span>
-                      <div style={{ height: `${val * 1.8}%` }} className="w-full bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
-                    </div>
-                  ))}
+                <div className="w-full my-auto flex flex-col justify-end">
+                  <div className="h-44 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-2.5 gap-1.5 pt-8">
+                    {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
+                        <span className="text-[9px] text-emerald-400 font-mono opacity-90 group-hover:opacity-100 pb-1">{val}m³</span>
+                        <div style={{ height: `${val * 1.8}%` }} className="w-full bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-400 flex justify-between pt-2">
+                    <span>06:00 AM</span>
+                    <span>12:00 PM (Peak)</span>
+                    <span>06:00 PM</span>
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-400 flex justify-between pt-1">
-                  <span>06:00 AM</span>
-                  <span>12:00 PM (Peak)</span>
-                  <span>06:00 PM</span>
-                </p>
+                <div className="text-[11px] text-slate-400 text-center">Hourly solar PV yield distribution across operational window</div>
               </div>
 
             </div>
