@@ -5,7 +5,86 @@ import { useLocation } from '../../context/LocationContext';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Official PAGASA Philippine Area of Responsibility (PAR) Boundary Polygon
+// Regional Extreme Weather & Crop Suitability Intelligence Dataset
+const REGIONAL_INTELLIGENCE: Record<string, {
+  name: string;
+  lat: number;
+  lng: number;
+  climateType: string;
+  typhoonFrequency: string;
+  extremeEvents: string[];
+  cropSuitability: { crop: string; rating: string; advisory: string }[];
+}> = {
+  'CALABARZON (Cavite / Batangas)': {
+    name: 'CALABARZON (Region IV-A)',
+    lat: 14.45896,
+    lng: 120.93851,
+    climateType: 'Type I (Two pronounced seasons: Dry Nov-Apr, Wet May-Oct)',
+    typhoonFrequency: 'Moderate - High (3 to 4 Tropical Cyclones / year)',
+    extremeEvents: [
+      'Monsoon Surge Flash Floods (Southwest Monsoon / Habagat)',
+      'Volcanic Ashfall & Lahar Risks (Taal Eruption Hazard Buffer)',
+      'Prolonged Dry Spells during Strong El Niño Events'
+    ],
+    cropSuitability: [
+      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Requires drainage management during peak Habagat wet season.' },
+      { crop: 'High-Value Upland Crops', rating: 'S1 - Highly Suitable', advisory: 'Optimal in volcanic loam upland zones (Lipa/Tagaytay).' },
+      { crop: 'Corn & Grain Legumes', rating: 'S2 - Moderately Suitable', advisory: 'Prone to waterlogging in alluvial coastal plains.' }
+    ]
+  },
+  'Central Luzon (Pampanga Plain)': {
+    name: 'Central Luzon (Region III)',
+    lat: 15.0286,
+    lng: 120.6896,
+    climateType: 'Type I (Pronounced dry and wet seasons)',
+    typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    extremeEvents: [
+      'Widespread Agricultural Inundation (Pampanga River Basin Overflow)',
+      'Extreme Summer Heat & Irrigation Water Deficits (Angat Dam Allocation Constraints)',
+      'Typhoon Direct Hits & Strong Gale Force Winds'
+    ],
+    cropSuitability: [
+      { crop: 'Lowland Paddy Rice', rating: 'S1 - Highly Suitable', advisory: 'Rice granary of the Philippines; double-cropping highly viable.' },
+      { crop: 'Bulb Onion & Garlic', rating: 'S1 - Highly Suitable', advisory: 'Ideal during dry season (Nueva Ecija / Tarlac plain).' },
+      { crop: 'Perennial Fruit Crops', rating: 'S3 - Marginally Suitable', advisory: 'High flood damage risk during major typhoons.' }
+    ]
+  },
+  'Bicol Peninsula (Naga / Albay)': {
+    name: 'Bicol Region (Region V)',
+    lat: 13.6218,
+    lng: 123.1948,
+    climateType: 'Type II & IV (No dry season with very pronounced maximum rainfall)',
+    typhoonFrequency: 'Very High (Direct Typhoon Belt: 5+ Cyclones / year)',
+    extremeEvents: [
+      'Super Typhoon Wind Damage & Storm Surges',
+      'Extreme Rainfall & Volcanic Lahar Flows (Mayon Hazard Zone)',
+      'Soil Saturation & Constant Siltation Inundation'
+    ],
+    cropSuitability: [
+      { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Resilient perennial crops suited for continuous rainfall.' },
+      { crop: 'Lowland Rice', rating: 'S2 - Moderately Suitable', advisory: 'High crop loss risk during late fourth-quarter typhoons.' },
+      { crop: 'High-Value Vegetables', rating: 'S3 - Marginally Suitable', advisory: 'Requires protected cropping/greenhouse structures.' }
+    ]
+  },
+  'Western Visayas (Iloilo Plain)': {
+    name: 'Western Visayas (Region VI)',
+    lat: 10.7202,
+    lng: 122.5621,
+    climateType: 'Type I & III (Short dry season of 1 to 3 months)',
+    typhoonFrequency: 'Moderate (2 to 3 Cyclones / year)',
+    extremeEvents: [
+      'Agricultural Drought & Prolonged El Niño Dry Spells',
+      'Riverine Flooding (Jaro & Jalaur River Basins)',
+      'Coastal High Tides & Salinity Intrusion'
+    ],
+    cropSuitability: [
+      { crop: 'Sugarcane & Grains', rating: 'S1 - Highly Suitable', advisory: 'Extremely productive in well-drained alluvial plains.' },
+      { crop: 'Rainfed Rice', rating: 'S2 - Moderately Suitable', advisory: 'Vulnerable to onset delays of the wet monsoon.' },
+      { crop: 'Aqua-Silviculture', rating: 'S1 - Highly Suitable', advisory: 'Ideal in coastal brackish transitional zones.' }
+    ]
+  }
+};
+
 const PAR_POLYGON_COORDS: [number, number][] = [
   [25.0, 120.0],
   [25.0, 135.0],
@@ -40,31 +119,24 @@ export function IrrigationDashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const { location, updateFromCoords } = useLocation();
 
-  // Shared map state: zoom level & global view mode toggle ('street' vs 'satellite')
+  // Selected Regional Intelligence Preset
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>('CALABARZON (Cavite / Batangas)');
+  const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['CALABARZON (Cavite / Batangas)'];
+
+  // Map view mode toggle ('street' vs 'satellite')
   const [sharedZoom, setSharedZoom] = useState<number>(13);
-  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('street');
+  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
 
   // Input states for SPIS Irrigation
   const [regionPreset, setRegionPreset] = useState('Southern Luzon (Batangas)');
   const [cropProfile, setCropProfile] = useState('Lowland Rice / Paddy (Wetland)');
   const [temp, setTemp] = useState(31.5);
   const [solarRad, setSolarRad] = useState(20.1);
-  const [phenologicalStage, setPhenologicalStage] = useState('Mid-Season Stage (Kc: 1.2)');
-  const [soilProfile, setSoilProfile] = useState('Heavy Clay (AWHC: 180 mm/m)');
-  
   const [appMethod, setAppMethod] = useState('Surface Flooding (45% Eff)');
   const [flowRate, setFlowRate] = useState(5);
   const [staticLift, setStaticLift] = useState(12);
-  const [pipeLength, setPipeLength] = useState(150);
-  const [pipeDiam, setPipeDiam] = useState(75);
-  const [opPress, setOpPress] = useState(10);
-  const [pumpEff, setPumpEff] = useState(65);
-
   const [peakSunHours, setPeakSunHours] = useState(5.2);
   const [safetyFactor, setSafetyFactor] = useState(1.3);
-  const [panelWattage, setPanelWattage] = useState('350W Monocrystalline');
-  const [busVoltage, setBusVoltage] = useState('48V DC Bus');
-  const [dieselPrice, setDieselPrice] = useState(60);
 
   // Watershed Hydrology States
   const [rainfallDepth, setRainfallDepth] = useState(75);
@@ -95,7 +167,7 @@ export function IrrigationDashboard() {
 
   const suitabilityResult = evaluateSuitability();
 
-  // Dynamic Tile URLs & Attributions
+  // Tile Providers
   const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community";
 
@@ -105,7 +177,6 @@ export function IrrigationDashboard() {
   const activeTileUrl = mapViewMode === 'satellite' ? SATELLITE_TILE_URL : STREET_TILE_URL;
   const activeAttribution = mapViewMode === 'satellite' ? SATELLITE_ATTRIBUTION : STREET_ATTRIBUTION;
 
-  // Reusable Map Layer Switcher Component for each map container
   const MapStyleToolbar = () => (
     <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-3 text-xs">
       <span className="text-slate-400 font-medium">🗺️ Select Map Style:</span>
@@ -130,7 +201,7 @@ export function IrrigationDashboard() {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Header & Global Mode Switch */}
+        {/* Top Header */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
@@ -243,7 +314,7 @@ export function IrrigationDashboard() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🗺️ GIS Layer & Coordinate Selector</h3>
-                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | Mode: <span className="text-emerald-400 uppercase font-mono">{mapViewMode}</span></p>
+                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span></p>
               </div>
               <div className="w-full md:w-72">
                 <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); updateFromCoords(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
@@ -267,27 +338,69 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 3: Weather & Climate */}
+        {/* Tab 3: Weather & Climate (WITH RESTORED REGIONAL EXTREME WEATHER LISTING) */}
         {activeTab === 'weather' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Climate Zones & Station Map</h3>
-                <p className="text-xs text-slate-400">Viewing climate normals for: <strong className="text-emerald-400">{location.name || "Selected Location"}</strong> ({location.lat.toFixed(3)}°N, {location.lng.toFixed(3)}°E)</p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Regional Weather & Extreme Climate Risk Matrix</h3>
+                <p className="text-xs text-slate-400">Select a regional zone to evaluate historical climate extremes and typhoon frequencies.</p>
               </div>
-              <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
-                Climate Zone Active
-              </span>
+              <div className="w-full md:w-80">
+                <select
+                  value={selectedRegionKey}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setSelectedRegionKey(key);
+                    const reg = REGIONAL_INTELLIGENCE[key];
+                    if (reg) updateFromCoords(reg.lat, reg.lng);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                >
+                  {Object.keys(REGIONAL_INTELLIGENCE).map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Regional Risk Panels */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">⚠️ Historical Extreme Weather Events</h4>
+                <div className="space-y-2">
+                  {activeRegionData.extremeEvents.map((evt, idx) => (
+                    <div key={idx} className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs text-slate-300 flex items-start gap-2">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>{evt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌪️ Climatology & Typhoon Frequency</h4>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-3 text-slate-300">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase">Climate Classification</span>
+                    <strong className="text-emerald-400 text-sm">{activeRegionData.climateType}</strong>
+                  </div>
+                  <div className="border-t border-slate-800 pt-2">
+                    <span className="text-slate-400 block text-[10px] uppercase">Annual Typhoon Exposure</span>
+                    <strong className="text-amber-400 text-sm">{activeRegionData.typhoonFrequency}</strong>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
+            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
-                <Marker position={[location.lat, location.lng]}><Popup>Weather Grid Station: {location.name || "Custom Pin"}</Popup></Marker>
+                <Marker position={[location.lat, location.lng]}><Popup>{activeRegionData.name}</Popup></Marker>
               </MapContainer>
             </div>
           </div>
@@ -324,8 +437,7 @@ export function IrrigationDashboard() {
                     <div className="text-xs font-sans">
                       <strong>📍 Selected Target Location</strong><br/>
                       {location.name || "Custom Site"}<br/>
-                      Lat: {location.lat.toFixed(4)}°N, Lng: {location.lng.toFixed(4)}°E<br/>
-                      <span className="text-emerald-600 font-bold">Inside PAGASA PAR Bounding Box</span>
+                      Lat: {location.lat.toFixed(4)}°N, Lng: {location.lng.toFixed(4)}°E
                     </div>
                   </Popup>
                 </Marker>
@@ -400,31 +512,69 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 7: Land Suitability */}
+        {/* Tab 7: Land Suitability (WITH RESTORED REGIONAL CROP SUITABILITY MATRIX) */}
         {activeTab === 'land' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌾 FAO LAND EVALUATION FRAMEWORK</h3>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Target Land Use / Crop</label>
-                  <select value={landUseTarget} onChange={(e) => setLandUseTarget(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                    <option value="Lowland Rice Paddy">Lowland Rice Paddy</option>
-                    <option value="High-Value Commercial Vegetables">High-Value Commercial Vegetables</option>
-                  </select>
-                </div>
+          <div className="space-y-6">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌾 Regional Crop Suitability & FAO Agricultural Adaptability Matrix</h3>
+                <p className="text-xs text-slate-400">Crop evaluations automatically synchronized for: <strong className="text-emerald-400">{activeRegionData.name}</strong></p>
               </div>
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">FAO Suitability Rating</span>
-                <span className="text-emerald-400 text-lg font-bold block">{suitabilityResult.class}</span>
+              <div className="w-full md:w-80">
+                <select
+                  value={selectedRegionKey}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setSelectedRegionKey(key);
+                    const reg = REGIONAL_INTELLIGENCE[key];
+                    if (reg) updateFromCoords(reg.lat, reg.lng);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                >
+                  {Object.keys(REGIONAL_INTELLIGENCE).map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">LIMITATION FACTORS & DRAINAGE</h3>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Terrain Slope (%)</span><span className="text-emerald-400 font-bold">{soilSlopePct}%</span></div>
-                  <input type="range" min="0" max="20" value={soilSlopePct} onChange={(e) => setSoilSlopePct(Number(e.target.value))} className="w-full accent-emerald-500" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {activeRegionData.cropSuitability.map((item, idx) => (
+                <div key={idx} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-emerald-400 block">{item.crop}</span>
+                  <span className="bg-emerald-950 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-800 inline-block">
+                    {item.rating}
+                  </span>
+                  <p className="text-xs text-slate-300 pt-1">{item.advisory}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">FAO LAND EVALUATION PARAMETERS</h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Target Land Use / Crop</label>
+                    <select value={landUseTarget} onChange={(e) => setLandUseTarget(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                      <option value="Lowland Rice Paddy">Lowland Rice Paddy</option>
+                      <option value="High-Value Commercial Vegetables">High-Value Commercial Vegetables</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">FAO Local Site Rating</span>
+                  <span className="text-emerald-400 text-lg font-bold block">{suitabilityResult.class}</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">LIMITATION FACTORS & DRAINAGE</h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Terrain Slope (%)</span><span className="text-emerald-400 font-bold">{soilSlopePct}%</span></div>
+                    <input type="range" min="0" max="20" value={soilSlopePct} onChange={(e) => setSoilSlopePct(Number(e.target.value))} className="w-full accent-emerald-500" />
+                  </div>
                 </div>
               </div>
             </div>
