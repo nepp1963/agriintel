@@ -334,31 +334,24 @@ export function IrrigationDashboard() {
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(28.5);
 
   const computeTopography = (lat: number, lng: number) => {
-    // Mt. Makiling Peak / UPLB Slopes (approx 14.13 to 14.18 N, 121.20 to 121.27 E)
     if (lat >= 14.12 && lat <= 14.19 && lng >= 121.20 && lng <= 121.27) {
       return { elev: 580, slope: 30.0 };
     } 
-    // Tagaytay / Laurel / Taal Ridge (approx 14.08 to 14.17 N, 120.90 to 121.13 E)
     else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
       return { elev: 610, slope: 25.0 };
     }
-    // Cordillera / Mountain Province highlands
     else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
       return { elev: 1350, slope: 35.0 };
     }
-    // Cavite / Laguna rolling uplands (Bacoor, Imus, Dasma, Silang)
     else if (lat >= 14.25 && lat <= 14.48 && lng >= 120.90 && lng <= 121.05) {
       return { elev: 25, slope: 3.5 };
     }
-    // Central Luzon Lowlands / Pampanga / Tarlac / Bulacan
     else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
       return { elev: 8, slope: 1.0 };
     }
-    // Coastal / Sea Level default
     else if (lat >= 14.4 && lat <= 14.6 && lng >= 120.8 && lng <= 121.0) {
       return { elev: 4, slope: 0.8 };
     }
-    // General default for inland lowlands
     return { elev: 20, slope: 2.0 };
   };
 
@@ -508,18 +501,18 @@ export function IrrigationDashboard() {
   const activeAttribution = mapViewMode === 'satellite' ? SATELLITE_ATTRIBUTION : STREET_ATTRIBUTION;
 
   const MapStyleToolbar = () => (
-    <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-3 text-xs">
-      <span className="text-slate-400 font-medium">🗺️ Select Map Style:</span>
+    <div className={`flex items-center justify-between p-2.5 rounded-lg border mb-3 text-xs ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-200 border-slate-300'}`}>
+      <span className={theme === 'dark' ? 'text-slate-400 font-medium' : 'text-slate-700 font-medium'}>🗺️ Select Map Style:</span>
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => setMapViewMode('street')}
-          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold shadow-sm' : (theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-800' : 'bg-white text-slate-700 hover:bg-slate-100')}`}
         >
           🗺️ Plain Map View
         </button>
         <button
           onClick={() => setMapViewMode('satellite')}
-          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold shadow-sm' : (theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-800' : 'bg-white text-slate-700 hover:bg-slate-100')}`}
         >
           🛰️ Satellite View
         </button>
@@ -538,8 +531,8 @@ export function IrrigationDashboard() {
               AgriIntel Core Engine
             </span>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400">Theme:</span>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 rounded-lg border border-slate-800">
+              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Theme:</span>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
                 {['#10b981', '#06b6d4', '#6366f1', '#a855f7', '#eab308', '#f97316'].map((color) => (
                   <button
                     key={color}
@@ -549,17 +542,23 @@ export function IrrigationDashboard() {
                   />
                 ))}
               </div>
-              <button onClick={() => setTheme('dark')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}>
+              <button 
+                onClick={() => setTheme('dark')} 
+                className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-200 text-slate-700'}`}
+              >
                 🌙 Dark
               </button>
-              <button onClick={() => setTheme('light')} className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'light' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}>
+              <button 
+                onClick={() => setTheme('light')} 
+                className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'light' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-200 text-slate-700'}`}
+              >
                 ☀️ Light
               </button>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition-colors">
+            <button onClick={() => window.print()} className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1 transition-colors ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'}`}>
               Export CSV
             </button>
             <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
@@ -570,7 +569,7 @@ export function IrrigationDashboard() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className={`flex flex-wrap items-center gap-2 p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className={`flex flex-wrap items-center gap-2 p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
           {[
             { id: 'spis', label: '🌱 SPIS Irrigation' },
             { id: 'gis', label: '🗺️ GIS Spatial & DEM' },
@@ -586,7 +585,9 @@ export function IrrigationDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800/50'
+                activeTab === tab.id 
+                  ? 'bg-emerald-600 text-white shadow-sm font-bold' 
+                  : (theme === 'dark' ? 'text-slate-300 hover:bg-slate-800/50' : 'text-slate-700 hover:bg-slate-100')
               }`}
             >
               {tab.label}
@@ -600,12 +601,12 @@ export function IrrigationDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               
               {/* Card 1: Regional Climate & Crops */}
-              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   🌱 Regional Climate & Crops
                 </h3>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">REGION PRESET (ALL PHILIPPINE REGIONS)</label>
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>REGION PRESET (ALL PHILIPPINE REGIONS)</label>
                   <select 
                     value={regionPreset} 
                     onChange={(e) => {
@@ -617,7 +618,7 @@ export function IrrigationDashboard() {
                         updateFromCoords(reg.lat, reg.lng);
                       }
                     }} 
-                    className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                    className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                   >
                     {Object.keys(REGIONAL_INTELLIGENCE).map((regKey) => (
                       <option key={regKey} value={regKey}>{regKey}</option>
@@ -626,11 +627,11 @@ export function IrrigationDashboard() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LOCAL SOIL TYPE & DA-BSWM SERIES</label>
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>LOCAL SOIL TYPE & DA-BSWM SERIES</label>
                   <select 
                     value={selectedSoilType} 
                     onChange={(e) => setSelectedSoilType(e.target.value)} 
-                    className="w-full bg-slate-950 border border-emerald-700/60 text-xs rounded-lg p-2 text-emerald-300 font-medium"
+                    className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                   >
                     {ALL_PHILIPPINE_SOIL_TYPES.map((soil) => (
                       <option key={soil} value={soil}>{soil}</option>
@@ -639,11 +640,11 @@ export function IrrigationDashboard() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TARGET CROP PROFILE</label>
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>TARGET CROP PROFILE</label>
                   <select 
                     value={cropProfile} 
                     onChange={(e) => setCropProfile(e.target.value)} 
-                    className="w-full bg-slate-950 border border-emerald-700/60 text-xs rounded-lg p-2 text-emerald-300 font-medium"
+                    className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                   >
                     {ALL_PHILIPPINE_CROPS.map((crop) => (
                       <option key={crop} value={crop}>{crop}</option>
@@ -652,12 +653,18 @@ export function IrrigationDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">TEMP (°C)</label><input type="number" value={temp} onChange={(e) => handleNumberInput(e, setTemp)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR (MJ)</label><input type="number" value={solarRad} onChange={(e) => handleNumberInput(e, setSolarRad)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>TEMP (°C)</label>
+                    <input type="number" value={temp} onChange={(e) => handleNumberInput(e, setTemp)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>SOLAR (MJ)</label>
+                    <input type="number" value={solarRad} onChange={(e) => handleNumberInput(e, setSolarRad)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PHENOLOGICAL STAGE (Kc)</label>
-                  <select value={phenologicalStage} onChange={(e) => setPhenologicalStage(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>PHENOLOGICAL STAGE (Kc)</label>
+                  <select value={phenologicalStage} onChange={(e) => setPhenologicalStage(e.target.value)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value="Mid-Season Stage (Kc: 1.2)">Mid-Season Stage (Kc: 1.2)</option>
                     <option value="Initial Stage (Kc: 0.4)">Initial Stage (Kc: 0.4)</option>
                     <option value="Development Stage (Kc: 0.8)">Development Stage (Kc: 0.8)</option>
@@ -665,8 +672,8 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOIL PROFILE & TEXTURE</label>
-                  <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>SOIL PROFILE & TEXTURE</label>
+                  <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value="Heavy Clay (AWHC: 180 mm/m)">Heavy Clay (AWHC: 180 mm/m)</option>
                     <option value="Clay Loam (AWHC: 140 mm/m)">Clay Loam (AWHC: 140 mm/m)</option>
                     <option value="Sandy Loam (AWHC: 100 mm/m)">Sandy Loam (AWHC: 100 mm/m)</option>
@@ -676,13 +683,13 @@ export function IrrigationDashboard() {
               </div>
 
               {/* Card 2: Irrigation Method & Hydraulics */}
-              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   💧 Irrigation Method & Hydraulics
                 </h3>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">APPLICATION METHOD</label>
-                  <select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>APPLICATION METHOD</label>
+                  <select value={appMethod} onChange={(e) => setAppMethod(e.target.value)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value="Surface Flooding (45% Eff)">Surface Flooding (45% Eff)</option>
                     <option value="Furrow Irrigation (60% Eff)">Furrow Irrigation (60% Eff)</option>
                     <option value="Sprinkler Irrigation (75% Eff)">Sprinkler Irrigation (75% Eff)</option>
@@ -691,31 +698,49 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FLOW (L/S)</label><input type="number" value={flowRate} onChange={(e) => handleNumberInput(e, setFlowRate)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">STATIC LIFT (M)</label><input type="number" value={staticLift} onChange={(e) => handleNumberInput(e, setStaticLift)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>FLOW (L/S)</label>
+                    <input type="number" value={flowRate} onChange={(e) => handleNumberInput(e, setFlowRate)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>STATIC LIFT (M)</label>
+                    <input type="number" value={staticLift} onChange={(e) => handleNumberInput(e, setStaticLift)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LENGTH (M)</label><input type="number" value={pipeLength} onChange={(e) => handleNumberInput(e, setPipeLength)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">DIAM (MM)</label><input type="number" value={pipeDiameter} onChange={(e) => handleNumberInput(e, setPipeDiameter)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>LENGTH (M)</label>
+                    <input type="number" value={pipeLength} onChange={(e) => handleNumberInput(e, setPipeLength)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>DIAM (MM)</label>
+                    <input type="number" value={pipeDiameter} onChange={(e) => handleNumberInput(e, setPipeDiameter)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">MINOR LOSS (%)</label><input type="number" value={minorLossPct} onChange={(e) => handleNumberInput(e, setMinorLossPct)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
-                  <div><label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">OP. PRESS (M)</label><input type="number" value={opPressure} onChange={(e) => handleNumberInput(e, setOpPressure)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" /></div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>MINOR LOSS (%)</label>
+                    <input type="number" value={minorLossPct} onChange={(e) => handleNumberInput(e, setMinorLossPct)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
+                  <div>
+                    <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>OP. PRESS (M)</label>
+                    <input type="number" value={opPressure} onChange={(e) => handleNumberInput(e, setOpPressure)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
+                  </div>
                 </div>
               </div>
 
               {/* Card 3: Solar & BoS Sizing */}
-              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   ☀️ Solar & BoS Sizing
                 </h3>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">PEAK SUN HOURS (PSH)</label>
-                  <input type="number" value={peakSunHours} onChange={(e) => handleNumberInput(e, setPeakSunHours)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>PEAK SUN HOURS (PSH)</label>
+                  <input type="number" value={peakSunHours} onChange={(e) => handleNumberInput(e, setPeakSunHours)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SOLAR PANEL SPEC (WATTAGE)</label>
-                  <select value={solarSpecWatt} onChange={(e) => setSolarSpecWatt(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>SOLAR PANEL SPEC (WATTAGE)</label>
+                  <select value={solarSpecWatt} onChange={(e) => setSolarSpecWatt(Number(e.target.value))} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value={150}>150W Compact Panel</option>
                     <option value={250}>250W Standard Utility</option>
                     <option value={350}>350W Commercial Monocrystalline</option>
@@ -725,50 +750,50 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">SYSTEM DC VOLTAGE</label>
-                  <select value={selectedDcVoltage} onChange={(e) => setSelectedDcVoltage(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>SYSTEM DC VOLTAGE</label>
+                  <select value={selectedDcVoltage} onChange={(e) => setSelectedDcVoltage(Number(e.target.value))} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value={12}>12V DC System</option>
                     <option value={24}>24V DC System</option>
                     <option value={48}>48V DC System (Standard)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">LIFEPO4 BATTERY BANK SPEC</label>
-                  <select value={batteryAh} onChange={(e) => setBatteryAh(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>LIFEPO4 BATTERY BANK SPEC</label>
+                  <select value={batteryAh} onChange={(e) => setBatteryAh(Number(e.target.value))} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value={100}>100Ah LiFePO4</option>
                     <option value={200}>200Ah LiFePO4</option>
                     <option value={314}>314Ah LiFePO4</option>
                   </select>
                 </div>
 
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-2 pt-2.5">
+                <div className={`p-3 rounded-xl border text-xs space-y-2 pt-2.5 ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold">Panels Needed:</span>
-                    <span className="text-emerald-400 font-bold font-mono text-sm">{calculatedPanelsCount} units ({solarSpecWatt}W)</span>
+                    <span className={`text-[10px] uppercase font-bold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Panels Needed:</span>
+                    <span className="text-emerald-500 font-bold font-mono text-sm">{calculatedPanelsCount} units ({solarSpecWatt}W)</span>
                   </div>
-                  <div className="flex justify-between items-center border-t border-slate-800/80 pt-1.5">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold">Batteries Needed:</span>
-                    <span className="text-emerald-400 font-bold font-mono text-sm">{calculatedBatteriesCount} units ({batteryAh}Ah @ {selectedDcVoltage}V)</span>
+                  <div className={`flex justify-between items-center border-t pt-1.5 ${theme === 'dark' ? 'border-slate-800/80' : 'border-slate-300'}`}>
+                    <span className={`text-[10px] uppercase font-bold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Batteries Needed:</span>
+                    <span className="text-emerald-500 font-bold font-mono text-sm">{calculatedBatteriesCount} units ({batteryAh}Ah @ {selectedDcVoltage}V)</span>
                   </div>
                 </div>
               </div>
 
               {/* Card 4: Economics & Savings */}
-              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'} space-y-3.5`}>
+              <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   💰 Economics & Savings
                 </h3>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">FUEL / DIESEL PRICE</label>
-                  <input type="number" value={dieselPrice} onChange={(e) => handleNumberInput(e, setDieselPrice)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>FUEL / DIESEL PRICE</label>
+                  <input type="number" value={dieselPrice} onChange={(e) => handleNumberInput(e, setDieselPrice)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1 uppercase font-semibold">ANNUAL OP. DAYS</label>
-                  <input type="number" value={annualDays} onChange={(e) => handleNumberInput(e, setAnnualDays)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200" />
+                  <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>ANNUAL OP. DAYS</label>
+                  <input type="number" value={annualDays} onChange={(e) => handleNumberInput(e, setAnnualDays)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`} />
                 </div>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-1">
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">DAILY YIELD</span>
-                  <span className="text-emerald-400 text-lg font-bold block font-mono">{dailyYieldVal} m³/day</span>
+                <div className={`p-4 rounded-xl border text-xs space-y-1 ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
+                  <span className={`block text-[10px] uppercase font-bold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>DAILY YIELD</span>
+                  <span className="text-emerald-500 text-lg font-bold block font-mono">{dailyYieldVal} m³/day</span>
                 </div>
               </div>
             </div>
@@ -777,61 +802,61 @@ export function IrrigationDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* TDH Breakdown Pie Graph Card */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px]">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
+              <div className={`border rounded-xl p-6 flex flex-col justify-between min-h-[500px] ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
                 <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-8 py-8">
                   <div 
-                    className="w-64 h-64 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center shrink-0 transition-all"
+                    className={`w-64 h-64 rounded-full border-4 shadow-inner relative flex items-center justify-center shrink-0 transition-all ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}
                     style={{ background: tdhConicGradient }}
                   >
-                    <div className="w-36 h-36 rounded-full bg-slate-950 flex flex-col items-center justify-center text-center shadow">
-                      <span className="text-xs text-slate-400 uppercase font-semibold">Total TDH</span>
-                      <span className="text-xl font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
+                    <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center text-center shadow ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
+                      <span className={`text-xs uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Total TDH</span>
+                      <span className="text-xl font-bold text-emerald-500 font-mono">{totalTDHNum}m</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-y-3 text-xs text-slate-300">
+                  <div className={`grid grid-cols-1 gap-y-3 text-xs ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
                     <div className="flex items-center gap-2.5">
                       <span className="w-3.5 h-3.5 rounded-full bg-slate-500 inline-block shrink-0"></span>
-                      <span>Static Lift: <strong className="text-white">{numStaticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
+                      <span>Static Lift: <strong className={theme === 'dark' ? 'text-white' : 'text-slate-900'}>{numStaticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block shrink-0"></span>
-                      <span>Friction Loss: <strong className="text-white">{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
+                      <span>Friction Loss: <strong className={theme === 'dark' ? 'text-white' : 'text-slate-900'}>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className="w-3.5 h-3.5 rounded-full bg-yellow-500 inline-block shrink-0"></span>
-                      <span>Minor Loss: <strong className="text-white">{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
+                      <span>Minor Loss: <strong className={theme === 'dark' ? 'text-white' : 'text-slate-900'}>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 inline-block shrink-0"></span>
-                      <span>Operating Pressure: <strong className="text-white">{numOpPressure}m</strong> ({pPress.toFixed(1)}%)</span>
+                      <span>Operating Pressure: <strong className={theme === 'dark' ? 'text-white' : 'text-slate-900'}>{numOpPressure}m</strong> ({pPress.toFixed(1)}%)</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-3">
+                <div className={`text-[11px] text-center border-t pt-3 ${theme === 'dark' ? 'text-slate-400 border-slate-800/80' : 'text-slate-600 border-slate-200'}`}>
                   Proportional hydraulic loss distribution
                 </div>
               </div>
 
               {/* Estimated Daily Pumping Yield Curve Bar Graph Card */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px]">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
+              <div className={`border rounded-xl p-6 flex flex-col justify-between min-h-[500px] ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
                 <div className="w-full my-auto flex flex-col justify-end pt-6">
-                  <div className="h-80 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-4 gap-2.5 pt-12">
+                  <div className={`h-80 w-full rounded-lg border flex items-end p-4 gap-2.5 pt-12 ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
                     {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
-                        <span className="text-[10px] text-emerald-400 font-mono opacity-90 group-hover:opacity-100 pb-1.5">{val}m³</span>
+                        <span className="text-[10px] text-emerald-500 font-mono opacity-90 group-hover:opacity-100 pb-1.5">{val}m³</span>
                         <div style={{ height: `${val * 1.9}%` }} className="w-full bg-emerald-500/80 rounded-t-md hover:bg-emerald-400 transition-all shadow-sm" />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[11px] text-slate-400 flex justify-between pt-3">
+                  <p className={`text-[11px] flex justify-between pt-3 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                     <span>06:00 AM</span>
                     <span>12:00 PM (Peak Sun)</span>
                     <span>06:00 PM</span>
                   </p>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-3">
+                <div className={`text-[11px] text-center border-t pt-3 ${theme === 'dark' ? 'text-slate-400 border-slate-800/80' : 'text-slate-600 border-slate-200'}`}>
                   Hourly solar PV yield distribution across operational window
                 </div>
               </div>
@@ -843,24 +868,24 @@ export function IrrigationDashboard() {
         {/* Tab 2: GIS Spatial & DEM */}
         {activeTab === 'gis' && (
           <div className="space-y-4">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className={`border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">MAP GIS LAYER & TOPOGRAPHIC ELEVATION / SLOPE SAMPLER</h3>
-                <p className="text-xs text-slate-400">
-                  Active Lat: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | 
-                  Lng: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | 
-                  Elevation: <span className="text-amber-400 font-mono">{extractedElevation} m</span> | 
-                  Extracted Slope: <span className={`font-mono font-bold ${extractedSlopePct > 18 ? 'text-red-400' : 'text-emerald-400'}`}>{extractedSlopePct}%</span>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">MAP GIS LAYER & TOPOGRAPHIC ELEVATION / SLOPE SAMPLER</h3>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Active Lat: <span className="text-emerald-500 font-mono">{location.lat.toFixed(5)}° N</span> | 
+                  Lng: <span className="text-emerald-500 font-mono">{location.lng.toFixed(5)}° E</span> | 
+                  Elevation: <span className="text-amber-500 font-mono">{extractedElevation} m</span> | 
+                  Extracted Slope: <span className={`font-mono font-bold ${extractedSlopePct > 18 ? 'text-red-500' : 'text-emerald-500'}`}>{extractedSlopePct}%</span>
                 </p>
               </div>
-              <div className="text-[11px] text-slate-400 italic">
+              <div className={`text-[11px] italic ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                 💡 Click anywhere on the map to sample precise topographic elevation and slope.
               </div>
             </div>
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800 relative" style={{ height: '420px' }}>
+            <div className={`w-full rounded-xl overflow-hidden border relative ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`} style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => {
@@ -873,7 +898,7 @@ export function IrrigationDashboard() {
                       <strong>📍 Topographic Point Analysis</strong><br/>
                       Elevation: {extractedElevation} m<br/>
                       Calculated Slope: {extractedSlopePct}%<br/>
-                      {extractedSlopePct > 18 ? <span className="text-red-400 font-bold">⚠️ Warning: Steep Slope (&gt;18%) - Surface Irrigation Non-Viable</span> : <span className="text-emerald-400 font-bold">✅ Suitable for Standard Irrigation</span>}
+                      {extractedSlopePct > 18 ? <span className="text-red-500 font-bold">⚠️ Warning: Steep Slope (&gt;18%) - Surface Irrigation Non-Viable</span> : <span className="text-emerald-500 font-bold">✅ Suitable for Standard Irrigation</span>}
                     </div>
                   </Popup>
                 </Marker>
@@ -885,10 +910,10 @@ export function IrrigationDashboard() {
         {/* Tab 3: Weather & Climate */}
         {activeTab === 'weather' && (
           <div className="space-y-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className={`border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Regional Weather & Extreme Climate Risk Matrix</h3>
-                <p className="text-xs text-slate-400">Select any Philippine region to evaluate historical climate extremes and typhoon frequencies.</p>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌦️ PAGASA Regional Weather & Extreme Climate Risk Matrix</h3>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Select any Philippine region to evaluate historical climate extremes and typhoon frequencies.</p>
               </div>
               <div className="w-full md:w-80">
                 <select
@@ -902,7 +927,7 @@ export function IrrigationDashboard() {
                       updateFromCoords(reg.lat, reg.lng);
                     }
                   }}
-                  className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                  className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                 >
                   {Object.keys(REGIONAL_INTELLIGENCE).map((k) => (
                     <option key={k} value={k}>{k}</option>
@@ -912,32 +937,32 @@ export function IrrigationDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">⚠️ Historical Extreme Weather Events</h4>
+              <div className={`border rounded-xl p-5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider">⚠️ Historical Extreme Weather Events</h4>
                 <div className="space-y-2">
                   {activeRegionData.extremeEvents.map((evt, idx) => (
-                    <div key={idx} className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs text-slate-300 flex items-start gap-2">
-                      <span className="text-amber-400 font-bold">•</span>
+                    <div key={idx} className={`p-3 rounded-lg border text-xs flex items-start gap-2 ${theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'}`}>
+                      <span className="text-amber-500 font-bold">•</span>
                       <span>{evt}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌪️ Local Climatology & Soil Series</h4>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-3 text-slate-300">
+              <div className={`border rounded-xl p-5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌪️ Local Climatology & Soil Series</h4>
+                <div className={`p-4 rounded-xl border text-xs space-y-3 ${theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'}`}>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase">Climate Classification</span>
-                    <strong className="text-emerald-400 text-sm">{activeRegionData.climateType}</strong>
+                    <span className={`block text-[10px] uppercase ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Climate Classification</span>
+                    <strong className="text-emerald-500 text-sm">{activeRegionData.climateType}</strong>
                   </div>
-                  <div className="border-t border-slate-800 pt-2">
-                    <span className="text-slate-400 block text-[10px] uppercase">Predominant Local Soil Type</span>
-                    <strong className="text-emerald-400 text-sm">{activeRegionData.predominantSoil}</strong>
+                  <div className={`border-t pt-2 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}>
+                    <span className={`block text-[10px] uppercase ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Predominant Local Soil Type</span>
+                    <strong className="text-emerald-500 text-sm">{activeRegionData.predominantSoil}</strong>
                   </div>
-                  <div className="border-t border-slate-800 pt-2">
-                    <span className="text-slate-400 block text-[10px] uppercase">Annual Typhoon Exposure</span>
-                    <strong className="text-amber-400 text-sm">{activeRegionData.typhoonFrequency}</strong>
+                  <div className={`border-t pt-2 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}>
+                    <span className={`block text-[10px] uppercase ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Annual Typhoon Exposure</span>
+                    <strong className="text-amber-500 text-sm">{activeRegionData.typhoonFrequency}</strong>
                   </div>
                 </div>
               </div>
@@ -945,7 +970,7 @@ export function IrrigationDashboard() {
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
+            <div className={`w-full rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`} style={{ height: '380px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
@@ -959,10 +984,10 @@ export function IrrigationDashboard() {
         {/* Tab 4: PAGASA Typhoon & PAR */}
         {activeTab === 'typhoon' && (
           <div className="space-y-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className={`border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) & Regional Weather Matrix</h3>
-                <p className="text-xs text-slate-400">Complete nationwide extreme weather and typhoon vulnerability table across all 17 Philippine regions.</p>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) & Regional Weather Matrix</h3>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Complete nationwide extreme weather and typhoon vulnerability table across all 17 Philippine regions.</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
                 PAR Status: Normal (No Cyclones Detected)
@@ -971,7 +996,7 @@ export function IrrigationDashboard() {
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '380px' }}>
+            <div className={`w-full rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`} style={{ height: '380px' }}>
               <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
@@ -994,12 +1019,12 @@ export function IrrigationDashboard() {
               </MapContainer>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📋 Complete Nationwide Regional Extreme Weather & Local Soil Listing (All 17 Regions)</h4>
+            <div className={`border rounded-xl p-5 space-y-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+              <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📋 Complete Nationwide Regional Extreme Weather & Local Soil Listing (All 17 Regions)</h4>
               <div className="overflow-x-auto max-h-[500px]">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="sticky top-0 bg-slate-950 text-slate-400">
-                    <tr className="border-b border-slate-800">
+                  <thead className={`sticky top-0 ${theme === 'dark' ? 'bg-slate-950 text-slate-400' : 'bg-slate-200 text-slate-700'}`}>
+                    <tr className={`border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}>
                       <th className="p-3">Region</th>
                       <th className="p-3">Predominant Local Soil Type</th>
                       <th className="p-3">Climate Type</th>
@@ -1007,13 +1032,13 @@ export function IrrigationDashboard() {
                       <th className="p-3">Historical Hazards</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  <tbody className={`divide-y ${theme === 'dark' ? 'divide-slate-800/60 text-slate-300' : 'divide-slate-200 text-slate-700'}`}>
                     {Object.values(REGIONAL_INTELLIGENCE).map((reg, idx) => (
-                      <tr key={idx} className="hover:bg-slate-900/40">
-                        <td className="p-3 font-bold text-emerald-400">{reg.name}</td>
-                        <td className="p-3 text-slate-300">{reg.predominantSoil}</td>
+                      <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-900/40' : 'hover:bg-slate-50'}>
+                        <td className="p-3 font-bold text-emerald-500">{reg.name}</td>
+                        <td className={`p-3 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{reg.predominantSoil}</td>
                         <td className="p-3">{reg.climateType}</td>
-                        <td className="p-3 font-medium text-amber-400">{reg.typhoonFrequency}</td>
+                        <td className="p-3 font-medium text-amber-500">{reg.typhoonFrequency}</td>
                         <td className="p-3">{reg.extremeEvents.join('; ')}</td>
                       </tr>
                     ))}
@@ -1027,10 +1052,10 @@ export function IrrigationDashboard() {
         {/* Tab 5: PHIVOLCS Geohazard & Faults */}
         {activeTab === 'phivolcs' && (
           <div className="space-y-4">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className={`border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌋 PHIVOLCS Active Fault & Volcanic Hazard Map</h3>
-                <p className="text-xs text-slate-400">Geohazard proximity analysis active for: <strong className="text-emerald-400">{location.name || "Selected Location"}</strong></p>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌋 PHIVOLCS Active Fault & Volcanic Hazard Map</h3>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Geohazard proximity analysis active for: <strong className="text-emerald-500">{location.name || "Selected Location"}</strong></p>
               </div>
               <div className="flex gap-2 text-xs">
                 <span className="bg-amber-950 text-amber-300 px-2.5 py-1 rounded border border-amber-800">Shaking: Moderate</span>
@@ -1040,7 +1065,7 @@ export function IrrigationDashboard() {
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
+            <div className={`w-full rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`} style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
@@ -1054,29 +1079,35 @@ export function IrrigationDashboard() {
         {/* Tab 6: Watershed (NRCS CN) */}
         {activeTab === 'watershed' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📐 NRCS CURVE NUMBER RUNOFF COMPUTATION</h3>
+            <div className={`border rounded-xl p-5 space-y-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📐 NRCS CURVE NUMBER RUNOFF COMPUTATION</h3>
               <div className="space-y-3 text-xs">
                 <div>
-                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">24-Hr Storm Rainfall Depth (mm)</span><span className="text-emerald-400 font-bold">{rainfallDepth} mm</span></div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>24-Hr Storm Rainfall Depth (mm)</span>
+                    <span className="text-emerald-500 font-bold">{rainfallDepth} mm</span>
+                  </div>
                   <input type="range" min="10" max="300" value={Number(rainfallDepth) || 0} onChange={(e) => handleNumberInput(e, setRainfallDepth)} className="w-full accent-emerald-500" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Runoff Curve Number (CN)</span><span className="text-emerald-400 font-bold">{curveNumber}</span></div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Runoff Curve Number (CN)</span>
+                    <span className="text-emerald-500 font-bold">{curveNumber}</span>
+                  </div>
                   <input type="range" min="40" max="98" value={Number(curveNumber) || 0} onChange={(e) => handleNumberInput(e, setCurveNumber)} className="w-full accent-emerald-500" />
                 </div>
               </div>
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Direct Storm Surface Runoff (Q)</span>
-                <span className="text-emerald-400 text-xl font-bold font-mono block">{computeRunoff()} mm</span>
+              <div className={`p-4 rounded-xl border text-xs space-y-2 ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
+                <span className={`block text-[10px] uppercase font-bold tracking-wider ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Direct Storm Surface Runoff (Q)</span>
+                <span className="text-emerald-500 text-xl font-bold font-mono block">{computeRunoff()} mm</span>
               </div>
             </div>
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">WATERSHED PARAMETERS & HYDROLOGIC GROUP</h3>
+            <div className={`border rounded-xl p-5 space-y-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+              <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">WATERSHED PARAMETERS & HYDROLOGIC GROUP</h3>
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Hydrologic Soil Group</label>
-                  <select value={hydrologicGroup} onChange={(e) => setHydrologicGroup(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
+                  <label className={`text-[11px] block mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Hydrologic Soil Group</label>
+                  <select value={hydrologicGroup} onChange={(e) => setHydrologicGroup(e.target.value)} className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}>
                     <option value="Group A (High Infiltration / Sand)">Group A (High Infiltration / Sand)</option>
                     <option value="Group B (Moderate Infiltration / Loam)">Group B (Moderate Infiltration / Loam)</option>
                     <option value="Group C (Slow Infiltration / Clay Loam)">Group C (Slow Infiltration / Clay Loam)</option>
@@ -1084,7 +1115,10 @@ export function IrrigationDashboard() {
                   </select>
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Time of Concentration (Tc)</span><span className="text-emerald-400 font-bold">{tcHours} hrs</span></div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Time of Concentration (Tc)</span>
+                    <span className="text-emerald-500 font-bold">{tcHours} hrs</span>
+                  </div>
                   <input type="range" min="0.5" max="12.0" step="0.1" value={Number(tcHours) || 0} onChange={(e) => handleNumberInput(e, setTcHours)} className="w-full accent-emerald-500" />
                 </div>
               </div>
@@ -1095,10 +1129,10 @@ export function IrrigationDashboard() {
         {/* Tab 7: Land Suitability */}
         {activeTab === 'land' && (
           <div className="space-y-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className={`border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌾 Regional Crop Suitability & FAO Agricultural Adaptability Matrix</h3>
-                <p className="text-xs text-slate-400">Crop evaluations automatically synchronized for: <strong className="text-emerald-400">{activeRegionData.name}</strong></p>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">🌾 Regional Crop Suitability & FAO Agricultural Adaptability Matrix</h3>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Crop evaluations automatically synchronized for: <strong className="text-emerald-500">{activeRegionData.name}</strong></p>
               </div>
               <div className="w-full md:w-80">
                 <select
@@ -1112,7 +1146,7 @@ export function IrrigationDashboard() {
                       updateFromCoords(reg.lat, reg.lng);
                     }
                   }}
-                  className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                  className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                 >
                   {Object.keys(REGIONAL_INTELLIGENCE).map((k) => (
                     <option key={k} value={k}>{k}</option>
@@ -1123,26 +1157,26 @@ export function IrrigationDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {activeRegionData.cropSuitability.map((item, idx) => (
-                <div key={idx} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2">
-                  <span className="text-xs font-bold text-emerald-400 block">{item.crop}</span>
+                <div key={idx} className={`border rounded-xl p-4 space-y-2 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                  <span className="text-xs font-bold text-emerald-500 block">{item.crop}</span>
                   <span className="bg-emerald-950 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-800 inline-block">
                     {item.rating}
                   </span>
-                  <p className="text-xs text-slate-300 pt-1">{item.advisory}</p>
+                  <p className={`text-xs pt-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{item.advisory}</p>
                 </div>
               ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">FAO LAND EVALUATION PARAMETERS</h3>
+              <div className={`border rounded-xl p-5 space-y-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">FAO LAND EVALUATION PARAMETERS</h3>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Target Land Use / Crop</label>
+                    <label className={`text-[11px] block mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Target Land Use / Crop</label>
                     <select 
                       value={landUseTarget} 
                       onChange={(e) => setLandUseTarget(e.target.value)} 
-                      className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                      className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                     >
                       {ALL_PHILIPPINE_CROPS.map((crop) => (
                         <option key={crop} value={crop}>{crop}</option>
@@ -1150,11 +1184,11 @@ export function IrrigationDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Local Soil Series / Type Selection</label>
+                    <label className={`text-[11px] block mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Local Soil Series / Type Selection</label>
                     <select 
                       value={selectedSoilType} 
                       onChange={(e) => setSelectedSoilType(e.target.value)} 
-                      className="w-full bg-slate-950 border border-emerald-700/60 text-xs rounded-lg p-2 text-emerald-300 font-medium"
+                      className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                     >
                       {ALL_PHILIPPINE_SOIL_TYPES.map((soil) => (
                         <option key={soil} value={soil}>{soil}</option>
@@ -1162,26 +1196,26 @@ export function IrrigationDashboard() {
                     </select>
                   </div>
                 </div>
-                <div className={`p-4 rounded-xl border text-xs space-y-2 ${Number(soilSlopePct) > 18 ? 'bg-red-950/40 border-red-800/80 text-red-200' : 'bg-slate-950 border-slate-800'}`}>
-                  <span className={`block text-[10px] uppercase font-bold tracking-wider ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-slate-400'}`}>
+                <div className={`p-4 rounded-xl border text-xs space-y-2 ${Number(soilSlopePct) > 18 ? 'bg-red-950/40 border-red-800/80 text-red-200' : (theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-900')}`}>
+                  <span className={`block text-[10px] uppercase font-bold tracking-wider ${Number(soilSlopePct) > 18 ? 'text-red-400' : (theme === 'dark' ? 'text-slate-400' : 'text-slate-600')}`}>
                     FAO Local Site Rating & Slope Hazard Warning
                   </span>
-                  <span className={`text-lg font-bold block ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <span className={`text-lg font-bold block ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-emerald-500'}`}>
                     {suitabilityResult.class}
                   </span>
-                  <p className="text-[11px] pt-1 leading-relaxed text-slate-300">
+                  <p className={`text-[11px] pt-1 leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
                     {suitabilityResult.note}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">LIMITATION FACTORS & DRAINAGE</h3>
+              <div className={`border rounded-xl p-5 space-y-4 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
+                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">LIMITATION FACTORS & DRAINAGE</h3>
                 <div className="space-y-3 text-xs">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Terrain Slope (%) [Synced from Map & DEM]</span>
-                      <span className={`font-bold ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-emerald-400'}`}>{soilSlopePct}%</span>
+                      <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Terrain Slope (%) [Synced from Map & DEM]</span>
+                      <span className={`font-bold ${Number(soilSlopePct) > 18 ? 'text-red-500' : 'text-emerald-500'}`}>{soilSlopePct}%</span>
                     </div>
                     <input type="range" min="0" max="45" value={Number(soilSlopePct) || 0} onChange={(e) => handleNumberInput(e, setSoilSlopePct)} className="w-full accent-emerald-500" />
                   </div>
