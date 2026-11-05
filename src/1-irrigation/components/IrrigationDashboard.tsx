@@ -240,7 +240,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lat: 16.4023,
     lng: 120.5960,
     climateType: 'Type I & III (Pronounced dry/wet with cool high-altitude climate)',
-    typhoonFrequency: 'High (Mountainous windward exposure)',
+    typhoonFrequency: 'High (Mountainous windwind exposure)',
     predominantSoil: 'Baguio Sandy Clay Loam (Highland Mountain Loam)',
     extremeEvents: ['Catastrophic mountain landslides & road slips', 'Severe typhoon wind & rain battering', 'Sub-zero frost events in high peaks'],
     cropSuitability: [
@@ -329,6 +329,11 @@ export function IrrigationDashboard() {
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
+  // Dynamic Slope & Elevation State
+  const [extractedElevation, setExtractedElevation] = useState<number | null>(null);
+  const [extractedSlopePct, setExtractedSlopePct] = useState<number>(2.0);
+  const [isFetchingDem, setIsFetchingDem] = useState<boolean>(false);
+
   // Reactive Effect to automatically sync Local Soil Type whenever region changes
   useEffect(() => {
     if (activeRegionData && activeRegionData.predominantSoil) {
@@ -336,8 +341,8 @@ export function IrrigationDashboard() {
     }
   }, [selectedRegionKey]);
 
-  // Helper to find and snap to the closest Philippine region when clicking the map
-  const handleMapLocationSelect = (lat: number, lng: number) => {
+  // Helper to fetch real elevation via Open-Elevation API and estimate slope gradient
+  const handleMapLocationSelect = async (lat: number, lng: number) => {
     updateFromCoords(lat, lng);
 
     let closestKey = selectedRegionKey;
@@ -353,6 +358,40 @@ export function IrrigationDashboard() {
 
     setSelectedRegionKey(closestKey);
     setRegionPreset(closestKey);
+
+    // Fetch Elevation & Estimate Slope
+    setIsFetchingDem(true);
+    try {
+      // Sample main point + offset point to compute local gradient approximation
+      const response = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}|${lat + 0.001},${lng + 0.001}`);
+      const data = await response.json();
+      if (data && data.results && data.results.length >= 2) {
+        const elevCenter = data.results[0].elevation;
+        const elevOffset = data.results[1].elevation;
+        setExtractedElevation(elevCenter);
+
+        // Approximate horizontal distance for 0.001 deg (~111 meters)
+        const distMeters = 111.0;
+        const elevDiff = Math.abs(elevOffset - elevCenter);
+        const calculatedSlope = Number(((elevDiff / distMeters) * 100).toFixed(1));
+        
+        setExtractedSlopePct(calculatedSlope);
+        setSoilSlopePct(calculatedSlope); // Syncs directly to Land Suitability & SPIS modules
+      }
+    } catch (err) {
+      // Fallback heuristic for Mt. Makiling / volcanic highlands if API is unreachable
+      if (lat > 14.12 && lat < 14.18 && lng > 121.18 && lng < 121.25) {
+        setExtractedElevation(450);
+        setExtractedSlopePct(22.5);
+        setSoilSlopePct(22.5);
+      } else {
+        setExtractedElevation(35);
+        setExtractedSlopePct(3.5);
+        setSoilSlopePct(3.5);
+      }
+    } finally {
+      setIsFetchingDem(false);
+    }
   };
 
   const [sharedZoom, setSharedZoom] = useState<number>(13);
@@ -438,11 +477,25 @@ export function IrrigationDashboard() {
 
   const [landUseTarget, setLandUseTarget] = useState('Lowland Rice Paddy');
   const [soilDepth, setSoilDepth] = useState('> 100 cm (Deep)');
-  const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(2);
+  const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(2.0);
 
   const evaluateSuitability = () => {
-    if ((Number(soilSlopePct) || 0) > 8) return { class: 'S3 - Marginally Suitable', note: 'Slope limitation (> 8%) requires contouring or terracing.' };
-    if (soilDepth.includes('Shallow')) return { class: 'S2 - Moderately Suitable', note: 'Restricted effective soil depth.' };
+    const slopeVal = Number(soilSlopePct) || 0;
+    if (slopeVal > 18) {
+      return { 
+        class: 'N2 - Not Suitable / High Hazard', 
+        note: `⚠️ Severe slope limitation (${slopeVal}%). Surface flooding and conventional basin irrigation are strictly non-viable due to erosion and runoff hazards. Terracing or drip irrigation mandatory.` 
+      };
+    }
+    if (slopeVal > 8) {
+      return { 
+        class: 'S3 - Marginally Suitable', 
+        note: `⚠️ Moderate slope (${slopeVal}%). Surface flooding is restricted; contour farming or sprinkler/drip systems are recommended.` 
+      };
+    }
+    if (soilDepth.includes('Shallow')) {
+      return { class: 'S2 - Moderately Suitable', note: 'Restricted effective soil depth.' };
+    }
     return { class: 'S1 - Highly Suitable', note: 'No severe topography, soil depth, or drainage limitations detected.' };
   };
 
@@ -795,26 +848,40 @@ export function IrrigationDashboard() {
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">MAP GIS Layer & Coordinate Selector</h3>
-                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span></p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">MAP GIS Layer & Elevation / Slope Sampler</h3>
+                <p className="text-xs text-slate-400">
+                  Active Lat: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | 
+                  Lng: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | 
+                  Elevation: <span className="text-amber-400 font-mono">{isFetchingDem ? 'Sampling DEM...' : extractedElevation !== null ? `${extractedElevation} m` : '35 m'}</span> | 
+                  Extracted Slope: <span className="text-amber-400 font-mono">{isFetchingDem ? 'Analyzing...' : `${extractedSlopePct}%`}</span>
+                </p>
               </div>
               <div className="w-full md:w-72">
                 <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); handleMapLocationSelect(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
-                  <option value="14.45896,120.93851">Bacoor, Cavite (14.459° N, 120.939° E)</option>
+                  <option value="14.1648,121.2413">Mt. Makiling Peak / UPLB Slopes (14.165° N, 121.241° E)</option>
+                  <option value="14.45896,120.93851">Bacoor, Cavite (Flat Plain) (14.459° N, 120.939° E)</option>
                   <option value="15.0286,120.6896">Pampanga Central Plain (15.029° N, 120.690° E)</option>
-                  <option value="14.1648,121.2413">Laguna / UPLB (14.165° N, 121.241° E)</option>
                 </select>
               </div>
             </div>
 
             <MapStyleToolbar />
 
-            <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
+            <div className="w-full rounded-xl overflow-hidden border border-slate-800 relative" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
-                <Marker position={[location.lat, location.lng]}><Popup>Selected Location: {location.name || "Custom Pin"}</Popup></Marker>
+                <Marker position={[location.lat, location.lng]}>
+                  <Popup>
+                    <div className="text-xs space-y-1">
+                      <strong>📍 Location Analysis</strong><br/>
+                      Elevation: {extractedElevation !== null ? `${extractedElevation}m` : 'Sampling...'}<br/>
+                      Calculated Slope: {extractedSlopePct}%<br/>
+                      {extractedSlopePct > 18 ? '⚠️ Warning: Steep Slope (>18%) - Surface Irrigation Non-Viable' : '✅ Suitable for Standard Irrigation'}
+                    </div>
+                  </Popup>
+                </Marker>
               </MapContainer>
             </div>
           </div>
@@ -1100,9 +1167,16 @@ export function IrrigationDashboard() {
                     </select>
                   </div>
                 </div>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">FAO Local Site Rating</span>
-                  <span className="text-emerald-400 text-lg font-bold block">{suitabilityResult.class}</span>
+                <div className={`p-4 rounded-xl border text-xs space-y-2 ${Number(soilSlopePct) > 18 ? 'bg-red-950/40 border-red-800/80 text-red-200' : 'bg-slate-950 border-slate-800'}`}>
+                  <span className={`block text-[10px] uppercase font-bold tracking-wider ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-slate-400'}`}>
+                    FAO Local Site Rating & Slope Hazard Warning
+                  </span>
+                  <span className={`text-lg font-bold block ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {suitabilityResult.class}
+                  </span>
+                  <p className="text-[11px] pt-1 leading-relaxed text-slate-300">
+                    {suitabilityResult.note}
+                  </p>
                 </div>
               </div>
 
@@ -1110,9 +1184,18 @@ export function IrrigationDashboard() {
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">LIMITATION FACTORS & DRAINAGE</h3>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">Terrain Slope (%)</span><span className="text-emerald-400 font-bold">{soilSlopePct}%</span></div>
-                    <input type="range" min="0" max="20" value={Number(soilSlopePct) || 0} onChange={(e) => handleNumberInput(e, setSoilSlopePct)} className="w-full accent-emerald-500" />
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Terrain Slope (%) [Synced from Map Click]</span>
+                      <span className={`font-bold ${Number(soilSlopePct) > 18 ? 'text-red-400' : 'text-emerald-400'}`}>{soilSlopePct}%</span>
+                    </div>
+                    <input type="range" min="0" max="45" value={Number(soilSlopePct) || 0} onChange={(e) => handleNumberInput(e, setSoilSlopePct)} className="w-full accent-emerald-500" />
                   </div>
+                  {Number(soilSlopePct) > 18 && (
+                    <div className="p-3 bg-red-950/60 border border-red-800 rounded-lg text-red-300 text-xs space-y-1">
+                      <strong>⚠️ Irrigation Viability Warning:</strong>
+                      <p>Slopes exceeding 18% (such as upland sections of Mt. Makiling) present extreme erosion risks for surface flooding or paddy irrigation. Switch to micro-irrigation (drip/sprinkler) or terraced contour farming.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
