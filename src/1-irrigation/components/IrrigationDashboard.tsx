@@ -356,7 +356,7 @@ export function IrrigationDashboard() {
   };
 
   const [sharedZoom, setSharedZoom] = useState<number>(13);
-  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('satellite');
+  const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('street');
 
   const [temp, setTemp] = useState<number | ''>(31.5);
   const [solarRad, setSolarRad] = useState<number | ''>(21);
