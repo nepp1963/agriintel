@@ -329,12 +329,38 @@ export function IrrigationDashboard() {
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
-  // GIS Location Dropdown Preset State (Synchronized)
+  // GIS Location Dropdown Preset State (Strictly Synced)
   const [gisPresetCoords, setGisPresetCoords] = useState<string>("14.1648,121.2413");
 
   // Dynamic Slope & Elevation State
   const [extractedElevation, setExtractedElevation] = useState<number>(450);
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(24.5);
+
+  // Helper to compute realistic topographic elevation and slope from coordinates
+  const computeTopography = (lat: number, lng: number) => {
+    // Mt. Makiling / UPLB Forest Reserve zone
+    if (lat >= 14.12 && lat <= 14.19 && lng >= 121.20 && lng <= 121.27) {
+      return { elev: 520, slope: 28.5 }; // Steep mountain slope (>18% hazard)
+    } 
+    // Tagaytay / Laurel / Taal Ridge zone
+    else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
+      return { elev: 490, slope: 22.0 }; // Steep volcanic ridge slope (>18% hazard)
+    }
+    // Cordillera / Mountain Province highlands
+    else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
+      return { elev: 1250, slope: 32.0 };
+    }
+    // Cavite / Laguna rolling hills (Bacoor, Amadeo, Silang)
+    else if (lat >= 14.18 && lat <= 14.48 && lng >= 120.85 && lng <= 121.20) {
+      return { elev: 110, slope: 8.5 };
+    }
+    // Central Luzon Lowlands / Pampanga / Tarlac / Bulacan
+    else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
+      return { elev: 12, slope: 1.2 };
+    }
+    // Default fallback
+    return { elev: 85, slope: 4.5 };
+  };
 
   // Reactive Effect to automatically sync Local Soil Type whenever region changes
   useEffect(() => {
@@ -343,7 +369,7 @@ export function IrrigationDashboard() {
     }
   }, [selectedRegionKey]);
 
-  // Robust Topographic & Elevation Engine for Philippine Volcanic & Alluvial Zones
+  // Unified Handler when selecting a point on the map
   const handleMapLocationSelect = (lat: number, lng: number) => {
     updateFromCoords(lat, lng);
 
@@ -361,44 +387,13 @@ export function IrrigationDashboard() {
     setSelectedRegionKey(closestKey);
     setRegionPreset(closestKey);
 
-    // Precise Topographic Heuristics for Mt. Makiling, Tagaytay/Laurel Ridge, Cavite, and Lowlands
-    let computedElevation = 35;
-    let computedSlope = 2.0;
+    const topo = computeTopography(lat, lng);
+    setExtractedElevation(topo.elev);
+    setExtractedSlopePct(topo.slope);
+    setSoilSlopePct(topo.slope); // Syncs directly to Land Suitability & SPIS modules
 
-    // Mt. Makiling / UPLB Forest Reserve zone (Lat ~14.13 to 14.18, Lng ~121.20 to 121.26)
-    if (lat >= 14.12 && lat <= 14.19 && lng >= 121.20 && lng <= 121.27) {
-      computedElevation = 480;
-      computedSlope = 26.5; // Steep mountain slope (>18% hazard)
-    } 
-    // Tagaytay / Laurel / Taal Ridge zone (Lat ~14.10 to 14.16, Lng ~120.90 to 121.12)
-    else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
-      computedElevation = 520;
-      computedSlope = 22.0; // Steep volcanic ridge slope (>18% hazard)
-    }
-    // Cordillera / Mountain Province highlands
-    else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
-      computedElevation = 1250;
-      computedSlope = 32.0; // Extremely steep mountain terrain
-    }
-    // Cavite / Laguna rolling hills (Bacoor, Amadeo, Silang)
-    else if (lat >= 14.18 && lat <= 14.48 && lng >= 120.85 && lng <= 121.20) {
-      computedElevation = 110;
-      computedSlope = 8.5; // Moderately rolling upland
-    }
-    // Central Luzon Lowlands / Pampanga / Tarlac / Bulacan
-    else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
-      computedElevation = 12;
-      computedSlope = 1.2; // Flat alluvial plain
-    }
-    // General default based on latitude proximity to ranges
-    else {
-      computedElevation = 85;
-      computedSlope = 4.5;
-    }
-
-    setExtractedElevation(computedElevation);
-    setExtractedSlopePct(computedSlope);
-    setSoilSlopePct(computedSlope); // Automatically syncs to Land Suitability & SPIS modules
+    // Update dropdown selection if it matches one of the presets closely
+    setGisPresetCoords(`${lat.toFixed(4)},${lng.toFixed(4)}`);
   };
 
   const [sharedZoom, setSharedZoom] = useState<number>(13);
@@ -484,7 +479,7 @@ export function IrrigationDashboard() {
 
   const [landUseTarget, setLandUseTarget] = useState('Lowland Rice Paddy');
   const [soilDepth, setSoilDepth] = useState('> 100 cm (Deep)');
-  const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(26.5);
+  const [soilSlopePct, setSoilSlopePct] = useState<number | ''>(28.5);
 
   const evaluateSuitability = () => {
     const slopeVal = Number(soilSlopePct) || 0;
@@ -888,7 +883,6 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => {
-                  setGisPresetCoords(`${lat.toFixed(4)},${lng.toFixed(4)}`);
                   handleMapLocationSelect(lat, lng);
                 }} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
