@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,7 +11,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Helper functions for dynamic coordinate conversions
 function toDMS(deg: number, isLat: boolean): string {
   const absolute = Math.abs(deg);
   const degrees = Math.floor(absolute);
@@ -23,7 +22,6 @@ function toDMS(deg: number, isLat: boolean): string {
 }
 
 function toUTM(lat: number, lng: number): string {
-  // Approximate UTM Zone 51N representation for Philippine archipelago
   const zone = Math.floor((lng + 180) / 6) + 1;
   const easting = Math.round(500000 + (lng - 121) * 111000 * Math.cos((lat * Math.PI) / 180));
   const northing = Math.round(lat * 110574);
@@ -32,14 +30,13 @@ function toUTM(lat: number, lng: number): string {
 
 export function FarmPlanningModule() {
   const { location, updateFromCoords } = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dynamic coordinates derived from global GIS location context
   const currentLat = location.lat;
   const currentLng = location.lng;
   const dmsCoords = `${toDMS(currentLat, true)}, ${toDMS(currentLng, false)}`;
   const utmCoords = toUTM(currentLat, currentLng);
 
-  // Dynamic polygon points centered around selected location
   const [gpsPoints, setGpsPoints] = useState<[number, number][]>([
     [currentLat + 0.002, currentLng - 0.002],
     [currentLat + 0.002, currentLng + 0.002],
@@ -52,7 +49,6 @@ export function FarmPlanningModule() {
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [slopePct, setSlopePct] = useState(2);
 
-  // Map click handler to update active site coordinates and add boundary vertices
   function MapClickHandler() {
     useMapEvents({
       click(e) {
@@ -63,7 +59,6 @@ export function FarmPlanningModule() {
     return null;
   }
 
-  // Live Mobile GPS capture handler
   const handleCaptureCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -88,10 +83,8 @@ export function FarmPlanningModule() {
 
   const handleClearBoundary = () => setGpsPoints([]);
 
-  // Calculated Polygon Area
   const estimatedAreaHa = gpsPoints.length >= 3 ? (gpsPoints.length * 1.85).toFixed(2) : "0.00";
 
-  // Agronomic recommendation logic
   const getRecommendedIrrigation = () => {
     if (slopePct > 5) return "Drip Irrigation (Minimized Runoff on Slopes)";
     if (soilTexture.includes('Sandy')) return "Drip / Micro-Sprinkler (High Infiltration Rate)";
@@ -99,9 +92,85 @@ export function FarmPlanningModule() {
     return "Drip / Overhead Sprinkler Combination";
   };
 
+  // --- SAVE FARM PLAN TO LOCAL JSON ---
+  const handleExportJSON = () => {
+    const farmPlanData = {
+      meta: {
+        appName: "AgriIntel-PH Engineering Suite",
+        version: "1.0",
+        exportTimestamp: new Date().toISOString(),
+      },
+      site: {
+        name: location.name || "Custom Pin Location",
+        centerLat: currentLat,
+        centerLng: currentLng,
+        dms: dmsCoords,
+        utm: utmCoords,
+      },
+      survey: {
+        boundaryVertices: gpsPoints,
+        vertexCount: gpsPoints.length,
+        estimatedAreaHectares: estimatedAreaHa,
+      },
+      agronomicAndTerrain: {
+        targetCropProfile: targetCrop,
+        soilTextureClass: soilTexture,
+        meanTerrainSlopePct: slopePct,
+        recommendedIrrigationSystem: getRecommendedIrrigation(),
+      },
+    };
+
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(farmPlanData, null, 2))}`;
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", jsonString);
+    const fileName = `AgriIntel_FarmPlan_${(location.name || 'Site').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
+    downloadAnchor.setAttribute("download", fileName);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // --- LOAD FARM PLAN FROM LOCAL JSON ---
+  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    fileReader.readAsText(files[0], "UTF-8");
+    fileReader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target?.result as string);
+        
+        if (importedData.site?.centerLat && importedData.site?.centerLng) {
+          updateFromCoords(importedData.site.centerLat, importedData.site.centerLng);
+        }
+
+        if (Array.isArray(importedData.survey?.boundaryVertices)) {
+          setGpsPoints(importedData.survey.boundaryVertices);
+        }
+
+        if (importedData.agronomicAndTerrain?.targetCropProfile) {
+          setTargetCrop(importedData.agronomicAndTerrain.targetCropProfile);
+        }
+
+        if (importedData.agronomicAndTerrain?.soilTextureClass) {
+          setSoilTexture(importedData.agronomicAndTerrain.soilTextureClass);
+        }
+
+        if (typeof importedData.agronomicAndTerrain?.meanTerrainSlopePct === 'number') {
+          setSlopePct(importedData.agronomicAndTerrain.meanTerrainSlopePct);
+        }
+
+        alert("Farm Plan JSON loaded successfully!");
+      } catch (error) {
+        alert("Invalid Farm Plan JSON file format.");
+      }
+    };
+  };
+
   return (
     <div className="space-y-6 text-slate-100">
-      {/* Header */}
+      {/* Header with Export/Import Action Controls */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
@@ -109,12 +178,37 @@ export function FarmPlanningModule() {
           </h2>
           <p className="text-xs text-slate-400">Map boundary via Mobile GPS or Drone Survey, auto-derive hydraulic layout & crop plans</p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          📄 Export Farm Plan Dossier
-        </button>
+
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* File input for JSON Load */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportJSON}
+            accept=".json"
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            📂 Load Plan (JSON)
+          </button>
+
+          <button
+            onClick={handleExportJSON}
+            className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            💾 Save Plan (JSON)
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            📄 Print Dossier
+          </button>
+        </div>
       </div>
 
       {/* Dynamic Active Site & Geographic Coordinates Readout Panel */}
@@ -248,7 +342,7 @@ export function FarmPlanningModule() {
                 </Marker>
               </MapContainer>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2">* Click anywhere on the map to pin a new site. DD, DMS, and UTM coordinates will recalculate automatically across the entire suite.</p>
+            <p className="text-[10px] text-slate-500 mt-2">* Click anywhere on the map to pin survey points or load a JSON file to reconstruct a saved farm plan.</p>
           </div>
 
           {/* Generated Farm Engineering Recommendations */}
