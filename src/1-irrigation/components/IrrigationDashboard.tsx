@@ -721,65 +721,65 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
-            {/* Bottom Analytics Section */}
+            {/* Bottom Analytics Section (Doubled Graph Heights) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* TDH Breakdown Pie Graph Card */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
-                <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-6 py-4">
+                <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-8 py-8">
                   <div 
-                    className="w-36 h-36 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center shrink-0"
+                    className="w-64 h-64 rounded-full border-4 border-slate-800 shadow-inner relative flex items-center justify-center shrink-0 transition-all"
                     style={{ background: tdhConicGradient }}
                   >
-                    <div className="w-20 h-20 rounded-full bg-slate-950 flex flex-col items-center justify-center text-center shadow">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Total TDH</span>
-                      <span className="text-sm font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
+                    <div className="w-36 h-36 rounded-full bg-slate-950 flex flex-col items-center justify-center text-center shadow">
+                      <span className="text-xs text-slate-400 uppercase font-semibold">Total TDH</span>
+                      <span className="text-xl font-bold text-emerald-400 font-mono">{totalTDHNum}m</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-slate-500 inline-block shrink-0"></span>
-                      <span>Static Lift: <strong>{numStaticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
+                  <div className="grid grid-cols-1 gap-y-3 text-xs text-slate-300">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-slate-500 inline-block shrink-0"></span>
+                      <span>Static Lift: <strong className="text-white">{numStaticLift}m</strong> ({pStatic.toFixed(1)}%)</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shrink-0"></span>
-                      <span>Friction: <strong>{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block shrink-0"></span>
+                      <span>Friction Loss: <strong className="text-white">{frictionLossNum}m</strong> ({pFriction.toFixed(1)}%)</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block shrink-0"></span>
-                      <span>Minor: <strong>{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-yellow-500 inline-block shrink-0"></span>
+                      <span>Minor Loss: <strong className="text-white">{minorLossNum}m</strong> ({pMinor.toFixed(1)}%)</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block shrink-0"></span>
-                      <span>Pressure: <strong>{numOpPressure}m</strong> ({pPress.toFixed(1)}%)</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 inline-block shrink-0"></span>
+                      <span>Operating Pressure: <strong className="text-white">{numOpPressure}m</strong> ({pPress.toFixed(1)}%)</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-2">
+                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-3">
                   Proportional hydraulic loss distribution
                 </div>
               </div>
 
               {/* Estimated Daily Pumping Yield Curve Bar Graph Card */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px]">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">☀️ Estimated Daily Pumping Yield Curve (Hourly Values)</h4>
-                <div className="w-full my-auto flex flex-col justify-end pt-4">
-                  <div className="h-40 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-3 gap-2 pt-8">
+                <div className="w-full my-auto flex flex-col justify-end pt-6">
+                  <div className="h-80 w-full bg-slate-950 rounded-lg border border-slate-800 flex items-end p-4 gap-2.5 pt-12">
                     {[2, 5, 12, 25, 38, 45, 48, 42, 30, 18, 6, 1].map((val, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group">
-                        <span className="text-[9px] text-emerald-400 font-mono opacity-90 group-hover:opacity-100 pb-1">{val}m³</span>
-                        <div style={{ height: `${val * 1.8}%` }} className="w-full bg-emerald-500/80 rounded-t-sm hover:bg-emerald-400 transition-all" />
+                        <span className="text-[10px] text-emerald-400 font-mono opacity-90 group-hover:opacity-100 pb-1.5">{val}m³</span>
+                        <div style={{ height: `${val * 1.9}%` }} className="w-full bg-emerald-500/80 rounded-t-md hover:bg-emerald-400 transition-all shadow-sm" />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[11px] text-slate-400 flex justify-between pt-2">
+                  <p className="text-[11px] text-slate-400 flex justify-between pt-3">
                     <span>06:00 AM</span>
-                    <span>12:00 PM (Peak)</span>
+                    <span>12:00 PM (Peak Sun)</span>
                     <span>06:00 PM</span>
                   </p>
                 </div>
-                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-2">
+                <div className="text-[11px] text-slate-400 text-center border-t border-slate-800/80 pt-3">
                   Hourly solar PV yield distribution across operational window
                 </div>
               </div>
