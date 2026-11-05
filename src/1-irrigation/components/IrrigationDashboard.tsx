@@ -40,7 +40,7 @@ export function IrrigationDashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const { location, updateFromCoords } = useLocation();
 
-  // Shared map state: zoom level & view mode toggle
+  // Shared map state: zoom level & global view mode toggle ('street' vs 'satellite')
   const [sharedZoom, setSharedZoom] = useState<number>(13);
   const [mapViewMode, setMapViewMode] = useState<'satellite' | 'street'>('street');
 
@@ -95,15 +95,36 @@ export function IrrigationDashboard() {
 
   const suitabilityResult = evaluateSuitability();
 
-  // Dynamic Tile URLs & Attributions for Toggle
+  // Dynamic Tile URLs & Attributions
   const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community";
+  const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community";
 
   const STREET_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
   const STREET_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   const activeTileUrl = mapViewMode === 'satellite' ? SATELLITE_TILE_URL : STREET_TILE_URL;
   const activeAttribution = mapViewMode === 'satellite' ? SATELLITE_ATTRIBUTION : STREET_ATTRIBUTION;
+
+  // Reusable Map Layer Switcher Component for each map container
+  const MapStyleToolbar = () => (
+    <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-3 text-xs">
+      <span className="text-slate-400 font-medium">🗺️ Select Map Style:</span>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => setMapViewMode('street')}
+          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+        >
+          🗺️ Plain Map View
+        </button>
+        <button
+          onClick={() => setMapViewMode('satellite')}
+          className={`px-3 py-1 rounded-md transition-all font-medium ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+        >
+          🛰️ Satellite View
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
@@ -127,22 +148,6 @@ export function IrrigationDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Plain Map vs Satellite Mode Toggle */}
-            <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-              <button
-                onClick={() => setMapViewMode('street')}
-                className={`px-3 py-1.5 rounded-md transition-all font-medium ${mapViewMode === 'street' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                🗺️ Plain Map
-              </button>
-              <button
-                onClick={() => setMapViewMode('satellite')}
-                className={`px-3 py-1.5 rounded-md transition-all font-medium ${mapViewMode === 'satellite' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                🛰️ Satellite
-              </button>
-            </div>
-
             <button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition-colors">
               📊 Export CSV
             </button>
@@ -249,6 +254,8 @@ export function IrrigationDashboard() {
               </div>
             </div>
 
+            <MapStyleToolbar />
+
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
@@ -273,6 +280,8 @@ export function IrrigationDashboard() {
               </span>
             </div>
 
+            <MapStyleToolbar />
+
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
@@ -296,6 +305,8 @@ export function IrrigationDashboard() {
                 PAR Status: Normal (No Cyclones Detected)
               </span>
             </div>
+
+            <MapStyleToolbar />
 
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
@@ -336,6 +347,8 @@ export function IrrigationDashboard() {
                 <span className="bg-emerald-950 text-emerald-300 px-2.5 py-1 rounded border border-emerald-800">Liquefaction: Low</span>
               </div>
             </div>
+
+            <MapStyleToolbar />
 
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
