@@ -324,12 +324,10 @@ export function IrrigationDashboard() {
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
-  // SPIS Inputs with Local Philippine Soil Types & Expanded Crops
   const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
-  // Dynamic Slope & Elevation State based on accurate Philippine Topography
   const [extractedElevation, setExtractedElevation] = useState<number>(520);
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(28.5);
 
