@@ -524,8 +524,8 @@ export function IrrigationDashboard() {
         {/* Top Header */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-500 tracking-wide text-sm bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-800/40">
-              AgriIntel Core Engine
+            <span className="font-extrabold text-emerald-500 tracking-wider text-base bg-emerald-950/60 px-3.5 py-2 rounded-lg border border-emerald-800/40 shadow-sm">
+              AgriIntelPH Core Engine
             </span>
             <div className="flex items-center gap-2 text-xs">
               <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Theme:</span>
@@ -551,7 +551,7 @@ export function IrrigationDashboard() {
             <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
               Print / Executive Dossier
             </button>
-            <span className="text-xs font-bold text-emerald-400 tracking-wider">AgriIntel</span>
+            <span className="text-sm font-bold text-emerald-400 tracking-wider">AgriIntelPH</span>
           </div>
         </div>
 
