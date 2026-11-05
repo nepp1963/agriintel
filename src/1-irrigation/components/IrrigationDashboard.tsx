@@ -329,47 +329,34 @@ export function IrrigationDashboard() {
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
-  // GIS Location Dropdown Preset State (Strictly Synced)
+  // GIS Location Dropdown Preset State
   const [gisPresetCoords, setGisPresetCoords] = useState<string>("14.1648,121.2413");
 
   // Dynamic Slope & Elevation State
   const [extractedElevation, setExtractedElevation] = useState<number>(450);
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(24.5);
 
-  // Helper to compute realistic topographic elevation and slope from coordinates
   const computeTopography = (lat: number, lng: number) => {
-    // Mt. Makiling / UPLB Forest Reserve zone
     if (lat >= 14.12 && lat <= 14.19 && lng >= 121.20 && lng <= 121.27) {
-      return { elev: 520, slope: 28.5 }; // Steep mountain slope (>18% hazard)
-    } 
-    // Tagaytay / Laurel / Taal Ridge zone
-    else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
-      return { elev: 490, slope: 22.0 }; // Steep volcanic ridge slope (>18% hazard)
-    }
-    // Cordillera / Mountain Province highlands
-    else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
+      return { elev: 520, slope: 28.5 };
+    } else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
+      return { elev: 490, slope: 22.0 };
+    } else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
       return { elev: 1250, slope: 32.0 };
-    }
-    // Cavite / Laguna rolling hills (Bacoor, Amadeo, Silang)
-    else if (lat >= 14.18 && lat <= 14.48 && lng >= 120.85 && lng <= 121.20) {
+    } else if (lat >= 14.18 && lat <= 14.48 && lng >= 120.85 && lng <= 121.20) {
       return { elev: 110, slope: 8.5 };
-    }
-    // Central Luzon Lowlands / Pampanga / Tarlac / Bulacan
-    else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
+    } else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
       return { elev: 12, slope: 1.2 };
     }
-    // Default fallback
     return { elev: 85, slope: 4.5 };
   };
 
-  // Reactive Effect to automatically sync Local Soil Type whenever region changes
   useEffect(() => {
     if (activeRegionData && activeRegionData.predominantSoil) {
       setSelectedSoilType(activeRegionData.predominantSoil);
     }
   }, [selectedRegionKey]);
 
-  // Unified Handler when selecting a point on the map
   const handleMapLocationSelect = (lat: number, lng: number) => {
     updateFromCoords(lat, lng);
 
@@ -390,9 +377,8 @@ export function IrrigationDashboard() {
     const topo = computeTopography(lat, lng);
     setExtractedElevation(topo.elev);
     setExtractedSlopePct(topo.slope);
-    setSoilSlopePct(topo.slope); // Syncs directly to Land Suitability & SPIS modules
+    setSoilSlopePct(topo.slope);
 
-    // Update dropdown selection if it matches one of the presets closely
     setGisPresetCoords(`${lat.toFixed(4)},${lng.toFixed(4)}`);
   };
 
