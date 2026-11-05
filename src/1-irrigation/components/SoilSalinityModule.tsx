@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 export function SoilSalinityModule() {
   // Input states for Soil Salinity & Leaching
   const [eciw, setEciw] = useState(1.2); // Electrical conductivity of irrigation water (dS/m)
-  const [targetEc e, setTargetEce] = useState(4.0); // Target threshold EC of saturation extract for crop (dS/m)
+  const [targetEce, setTargetEce] = useState(4.0); // Target threshold EC of saturation extract for crop (dS/m)
   const [lrMethod, setLrMethod] = useState('Standard FAO Leaching Requirement Formula');
 
   // Calculations
-  // Leaching Requirement (LR) = ECiw / (5 * ECe - ECiw) generalized or ECiw / ECe ratio
   const leachingRequirement = eciw / (5 * targetEce - eciw);
   const lrPercent = Math.max(0, (leachingRequirement * 100)).toFixed(1);
 
@@ -42,7 +41,7 @@ export function SoilSalinityModule() {
 
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400">Irrigation Water Salinity ($EC_{iw}$)</span>
+              <span className="text-slate-400">Irrigation Water Salinity (ECiw)</span>
               <span className="text-emerald-400 font-bold">{eciw} dS/m</span>
             </div>
             <input
@@ -58,7 +57,7 @@ export function SoilSalinityModule() {
 
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400">Target Crop Rootzone Salinity Threshold ($EC_{e}$)</span>
+              <span className="text-slate-400">Target Crop Rootzone Salinity Threshold (ECe)</span>
               <span className="text-emerald-400 font-bold">{targetEce} dS/m</span>
             </div>
             <input
@@ -96,7 +95,7 @@ export function SoilSalinityModule() {
 
           <div className="p-3.5 bg-emerald-950/40 rounded-xl border border-emerald-800/50 text-xs text-emerald-300 space-y-1">
             <strong>Management Advisory:</strong>
-            <p>Ensure extra irrigation water volume equivalent to {lrPercent}% above normal crop evapotranspiration ($ET_c$) is applied to leach salts below the root zone.</p>
+            <p>Ensure extra irrigation water volume equivalent to {lrPercent}% above normal crop evapotranspiration (Etc) is applied to leach salts below the root zone.</p>
           </div>
         </div>
       </div>

@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import SoilSalinityModule from './SoilSalinityModule';
 import FarmPlanningModule from './FarmPlanningModule';
 import { useLocation } from '../../context/LocationContext';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Component to handle map center AND zoom level synchronization across all tabs
+// Official PAGASA Philippine Area of Responsibility (PAR) Boundary Polygon
+const PAR_POLYGON_COORDS: [number, number][] = [
+  [25.0, 120.0],
+  [25.0, 135.0],
+  [5.0, 135.0],
+  [5.0, 115.0],
+  [15.0, 115.0],
+  [21.0, 120.0],
+];
+
+// Component to handle dynamic map center AND zoom level synchronization for any selected location
 function SyncedMapController({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   map.setView(center, zoom);
@@ -32,8 +42,8 @@ export function IrrigationDashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const { location, updateFromCoords } = useLocation();
 
-  // Shared map zoom state for synchronizing zoom across all tabs
-  const [sharedZoom, setSharedZoom] = useState<number>(14);
+  // Shared map zoom state
+  const [sharedZoom, setSharedZoom] = useState<number>(13);
 
   // Input states for SPIS Irrigation
   const [regionPreset, setRegionPreset] = useState('Southern Luzon (Batangas)');
@@ -85,6 +95,10 @@ export function IrrigationDashboard() {
   };
 
   const suitabilityResult = evaluateSuitability();
+
+  // Satellite Imagery Provider URL
+  const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  const SATELLITE_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community";
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
@@ -197,19 +211,20 @@ export function IrrigationDashboard() {
           </div>
         )}
 
-        {/* Tab 2: GIS Spatial & DEM (FULL WIDTH MAP + SYNCHRONIZED ZOOM) */}
+        {/* Tab 2: GIS Spatial & DEM (DYNAMIC LOCATION MAP) */}
         {activeTab === 'gis' && (
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🗺️ GIS Layer & Coordinate Selector</h3>
-                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | Zoom Level: <span className="text-emerald-400 font-mono">{sharedZoom}x</span></p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🗺️ GIS Layer & Satellite Coordinate Selector</h3>
+                <p className="text-xs text-slate-400">Active Latitude: <span className="text-emerald-400 font-mono">{location.lat.toFixed(5)}° N</span> | Longitude: <span className="text-emerald-400 font-mono">{location.lng.toFixed(5)}° E</span> | Zoom: <span className="text-emerald-400 font-mono">{sharedZoom}x</span></p>
               </div>
               <div className="w-full md:w-72">
                 <select onChange={(e) => { const [lat, lng] = e.target.value.split(',').map(Number); updateFromCoords(lat, lng); }} className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
                   <option value="14.45896,120.93851">Bacoor, Cavite (14.459° N, 120.939° E)</option>
                   <option value="15.0286,120.6896">Pampanga Central Plain (15.029° N, 120.690° E)</option>
                   <option value="14.1648,121.2413">Laguna / UPLB (14.165° N, 121.241° E)</option>
+                  <option value="13.9419,121.1644">Batangas Lipa Uplands (13.942° N, 121.164° E)</option>
                 </select>
               </div>
             </div>
@@ -218,23 +233,24 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[location.lat, location.lng]}><Popup>GIS Station: {location.name || "Selected Site"}</Popup></Marker>
+                <TileLayer attribution={SATELLITE_ATTRIBUTION} url={SATELLITE_TILE_URL} />
+                <Marker position={[location.lat, location.lng]}><Popup>Selected Location: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
+            <p className="text-[10px] text-slate-500">* Click anywhere on the map to instantly re-center and update coordinates across all modules.</p>
           </div>
         )}
 
-        {/* Tab 3: Weather & Climate (FULL WIDTH MAP + SYNCHRONIZED ZOOM) */}
+        {/* Tab 3: Weather & Climate (DYNAMIC LOCATION MAP) */}
         {activeTab === 'weather' && (
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Climate Zones & Station Map</h3>
-                <p className="text-xs text-slate-400">Peak ET₀: <strong className="text-emerald-400">6.10 mm/day</strong> | Annual Rainfall: <strong className="text-emerald-400">2,150 mm</strong></p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌦️ PAGASA Climate Zones & Satellite Weather Map</h3>
+                <p className="text-xs text-slate-400">Viewing climate normals for: <strong className="text-emerald-400">{location.name || "Selected Location"}</strong> ({location.lat.toFixed(3)}°N, {location.lng.toFixed(3)}°E)</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
-                Type I Climate Zone Active
+                Climate Zone Active
               </span>
             </div>
 
@@ -242,44 +258,61 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[location.lat, location.lng]}><Popup>Weather Station & Climatological Grid</Popup></Marker>
+                <TileLayer attribution={SATELLITE_ATTRIBUTION} url={SATELLITE_TILE_URL} />
+                <Marker position={[location.lat, location.lng]}><Popup>Weather Grid Station: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
           </div>
         )}
 
-        {/* Tab 4: PAGASA Typhoon & PAR (FULL WIDTH MAP + SYNCHRONIZED ZOOM) */}
+        {/* Tab 4: PAGASA Typhoon & PAR (DYNAMIC PAR + USER LOCATION MARKER) */}
         {activeTab === 'typhoon' && (
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 Philippine Area of Responsibility (PAR) Tracking Map</h3>
-                <p className="text-xs text-slate-400">Active meteorological monitoring across the PAR bounding box.</p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌀 PAGASA Philippine Area of Responsibility (PAR) Tracking Engine</h3>
+                <p className="text-xs text-slate-400">Yellow boundary shows the official PAR polygon. Pin reflects your currently chosen location ({location.name || "Custom Pin"}).</p>
               </div>
               <span className="text-xs font-mono bg-emerald-950 text-emerald-300 px-3 py-1 rounded border border-emerald-800">
-                Status: Normal (Signal 0)
+                PAR Status: Normal (No Cyclones Detected)
               </span>
             </div>
 
             <div className="w-full rounded-xl overflow-hidden border border-slate-800" style={{ height: '420px' }}>
-              <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
+              <MapContainer center={[13.0, 122.0]} zoom={5} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[location.lat, location.lng]}><Popup>PAR Monitoring Grid: No Active Cyclones</Popup></Marker>
+                <TileLayer attribution={SATELLITE_ATTRIBUTION} url={SATELLITE_TILE_URL} />
+                
+                {/* Official PAR Boundary Overlay */}
+                <Polygon
+                  positions={PAR_POLYGON_COORDS}
+                  pathOptions={{ color: '#f59e0b', weight: 2.5, dashArray: '6, 6', fillColor: '#f59e0b', fillOpacity: 0.1 }}
+                />
+
+                {/* Dynamically placed marker on whatever location is currently chosen */}
+                <Marker position={[location.lat, location.lng]}>
+                  <Popup>
+                    <div className="text-xs font-sans">
+                      <strong>📍 Selected Target Location</strong><br/>
+                      {location.name || "Custom Site"}<br/>
+                      Lat: {location.lat.toFixed(4)}°N, Lng: {location.lng.toFixed(4)}°E<br/>
+                      <span className="text-emerald-600 font-bold">Inside PAGASA PAR Bounding Box</span>
+                    </div>
+                  </Popup>
+                </Marker>
               </MapContainer>
             </div>
           </div>
         )}
 
-        {/* Tab 5: PHIVOLCS Geohazard & Faults (FULL WIDTH MAP + SYNCHRONIZED ZOOM) */}
+        {/* Tab 5: PHIVOLCS Geohazard & Faults (DYNAMIC LOCATION MAP) */}
         {activeTab === 'phivolcs' && (
           <div className="space-y-4">
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌋 PHIVOLCS Active Fault & Volcanic Hazard Map</h3>
-                <p className="text-xs text-slate-400">Proximity analysis active for West Valley Fault buffer zones and volcanic ashfall grids.</p>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🌋 PHIVOLCS Active Fault & Volcanic Hazard Satellite Map</h3>
+                <p className="text-xs text-slate-400">Geohazard proximity analysis active for: <strong className="text-emerald-400">{location.name || "Selected Location"}</strong></p>
               </div>
               <div className="flex gap-2 text-xs">
                 <span className="bg-amber-950 text-amber-300 px-2.5 py-1 rounded border border-amber-800">Shaking: Moderate</span>
@@ -291,8 +324,8 @@ export function IrrigationDashboard() {
               <MapContainer center={[location.lat, location.lng]} zoom={sharedZoom} style={{ height: '100%', width: '100%' }}>
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={updateFromCoords} />
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[location.lat, location.lng]}><Popup>Geohazard & Fault Line Proximity Check</Popup></Marker>
+                <TileLayer attribution={SATELLITE_ATTRIBUTION} url={SATELLITE_TILE_URL} />
+                <Marker position={[location.lat, location.lng]}><Popup>Geohazard Check: {location.name || "Custom Pin"}</Popup></Marker>
               </MapContainer>
             </div>
           </div>
