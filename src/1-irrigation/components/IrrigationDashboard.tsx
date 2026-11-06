@@ -525,7 +525,7 @@ export function IrrigationDashboard() {
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
             <span className="font-normal text-slate-200 tracking-wider text-base bg-emerald-950/60 px-3.5 py-2 rounded-lg border border-emerald-800/40 shadow-sm">
-              Agr<span className="text-lg font-bold text-cyan-400">AI</span>ntel<span className="text-lg font-bold text-cyan-400">PH</span> Core Engine
+              Agr<span className="text-emerald-400 text-sm font-normal">i</span><span className="text-lg font-bold text-cyan-400">AI</span>ntel<span className="text-lg font-bold text-cyan-400">PH</span> Core Engine
             </span>
             <div className="flex items-center gap-2 text-xs">
               <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Theme:</span>
@@ -551,7 +551,7 @@ export function IrrigationDashboard() {
             <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
               Print / Executive Dossier
             </button>
-            <span className="text-sm font-normal text-slate-300 tracking-wider flex items-center gap-0.5">Agr<span className="text-base font-bold text-cyan-400">AI</span>ntel<span className="text-base font-bold text-cyan-400">PH</span></span>
+            <span className="text-sm font-normal text-slate-300 tracking-wider flex items-center gap-0.5">Agr<span className="text-emerald-400 text-xs font-normal">i</span><span className="text-base font-bold text-cyan-400">AI</span>ntel<span className="text-base font-bold text-cyan-400">PH</span></span>
           </div>
         </div>
 
