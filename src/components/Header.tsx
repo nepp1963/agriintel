@@ -1,9 +1,19 @@
-{/* Left Header Title: AgriIntelPH Core Engine */}
-<h1 className="text-lg font-normal text-slate-200 tracking-wide flex items-center gap-0.5">
-  Agr<span className="text-xl font-bold text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">AI</span>ntel<span className="text-xl font-bold text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">PH</span> Core Engine
-</h1>
+import React from "react";
 
-{/* Right Header Title: AgriIntelPH */}
-<div className="text-sm font-normal text-slate-300 tracking-wide flex items-center gap-0.5">
-  Agr<span className="text-base font-bold text-cyan-400">AI</span>ntel<span className="text-base font-bold text-cyan-400">PH</span>
-</div>
+export const Header: React.FC = () => {
+  return (
+    <header className="flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800">
+      {/* Left Header Title: AgriIntelPH Core Engine */}
+      <h1 className="text-lg font-normal text-white tracking-wide flex items-center gap-0.5">
+        Agr<span className="text-xl font-bold text-white">i</span>ntel<span className="text-xl font-bold text-white">PH</span> Core Engine
+      </h1>
+
+      {/* Right Header Title: AgriIntelPH */}
+      <div className="text-sm font-normal text-white tracking-wide flex items-center gap-0.5">
+        Agr<span className="text-base font-bold text-white">i</span>ntel<span className="text-base font-bold text-white">PH</span>
+      </div>
+    </header>
+  );
+};
+
+export default Header;
