@@ -551,7 +551,7 @@ export function IrrigationDashboard() {
             <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
               Print / Executive Dossier
             </button>
-            <span className="text-sm font-bold text-emerald-400 tracking-wider">AgriIntelPH</span>
+            <span className="text-sm font-normal text-slate-300 tracking-wider flex items-center gap-0.5">Agr<span className="text-base font-bold text-cyan-400">AI</span>ntel<span className="text-base font-bold text-cyan-400">PH</span></span>
           </div>
         </div>
 
