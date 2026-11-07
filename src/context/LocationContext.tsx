@@ -34,92 +34,141 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [location, setLocation] = useState<LocationData>(defaultLocation);
 
   const updateFromCoords = (lat: number, lng: number, newZoom?: number) => {
-    let regionName = 'Southern Luzon (CALABARZON)';
+    let regionName = "Philippine Regional Zone";
     let climateType: 'Type I' | 'Type II' | 'Type III' | 'Type IV' = 'Type I';
-    let soilSeries = 'Lipa Clay Loam';
+    let soilSeries = 'Tropical Clay Loam';
     let hydrologicGroup: 'A' | 'B' | 'C' | 'D' = 'B';
-    let defaultCurveNumber = 78;
     let tempMax = 31.5;
     let tempMin = 24.0;
     let solarRad = 20.1;
     let cloudCoverPercent = 42;
-    let windDirection = 'ENE (Amihan Track)';
+    let windDirection = 'Variable (Monsoon Track)';
 
-    if (lat >= 14.5 && lng < 121.1) {
-      regionName = 'National Capital Region (NCR - Manila)';
-      climateType = 'Type I';
-      soilSeries = 'Novaliches Clay Loam';
-      hydrologicGroup = 'B';
-      defaultCurveNumber = 75;
-      tempMax = 32.0;
-      tempMin = 25.0;
-      solarRad = 20.5;
-      cloudCoverPercent = 40;
-      windDirection = 'NE (Amihan)';
-    } else if (lat >= 14.5) {
-      regionName = 'Central & Northern Luzon';
-      climateType = 'Type I';
-      soilSeries = 'San Manuel Loam';
-      hydrologicGroup = 'B';
-      defaultCurveNumber = 75;
+    // 1. National Capital Region (NCR / Metro Manila)
+    if (lat >= 14.45 && lat <= 14.75 && lng >= 120.90 && lng <= 121.12) {
+      regionName = "National Capital Region (NCR - Manila)";
+      climateType = "Type I";
+      soilSeries = "Novaliches Clay Loam";
+      hydrologicGroup = "C";
       tempMax = 32.5;
+      tempMin = 25.0;
+      solarRad = 21.2;
+      cloudCoverPercent = 45;
+      windDirection = "ENE (Amihan Track)";
+    }
+    // 2. Central Luzon (Pampanga, Tarlac, Bulacan, Nueva Ecija, Zambales, Bataan, Aurora)
+    else if (lat >= 14.75 && lat <= 16.20 && lng >= 119.80 && lng <= 121.60) {
+      regionName = "Central Luzon (Region III)";
+      climateType = "Type I";
+      soilSeries = "Pampanga Clay Loam / Alluvial";
+      hydrologicGroup = "C";
+      tempMax = 32.0;
       tempMin = 24.5;
       solarRad = 21.0;
-      cloudCoverPercent = 30;
-      windDirection = 'NE (Amihan)';
-    } else if (lat >= 13.0 && lat < 14.5) {
-      regionName = 'Southern Luzon (CALABARZON)';
-      climateType = 'Type I';
-      soilSeries = 'Lipa Clay Loam';
-      hydrologicGroup = 'B';
-      defaultCurveNumber = 78;
+      cloudCoverPercent = 40;
+      windDirection = "WSW (Habagat Track)";
+    }
+    // 3. Southern Tagalog / CALABARZON (Batangas, Cavite, Laguna, Rizal, Quezon)
+    else if (lat >= 13.50 && lat <= 14.75 && lng >= 120.50 && lng <= 122.50) {
+      regionName = "Southern Luzon (CALABARZON)";
+      climateType = "Type I";
+      soilSeries = "Lipa Clay Loam";
+      hydrologicGroup = "B";
       tempMax = 31.5;
       tempMin = 24.0;
       solarRad = 20.1;
       cloudCoverPercent = 42;
-      windDirection = 'ENE (Amihan Track)';
-    } else if (lat >= 9.0 && lat < 13.5 && lng < 122.0) {
-      regionName = 'MIMAROPA Region';
-      climateType = 'Type III';
-      soilSeries = 'Annam Clay Loam';
-      hydrologicGroup = 'C';
-      defaultCurveNumber = 80;
-      tempMax = 31.2;
+      windDirection = "ENE (Amihan Track)";
+    }
+    // 4. Ilocos Region & Cordillera (Region I & CAR)
+    else if (lat > 16.20 && lat <= 18.60 && lng >= 119.50 && lng <= 121.80) {
+      regionName = "Northern Luzon (Ilocos / CAR)";
+      climateType = "Type I";
+      soilSeries = "Bantay Loam / Mountain Soil";
+      hydrologicGroup = "B";
+      tempMax = 30.0;
+      tempMin = 22.0;
+      solarRad = 19.5;
+      cloudCoverPercent = 38;
+      windDirection = "NNE (Mountain Breeze)";
+    }
+    // 5. Cagayan Valley (Region II)
+    else if (lat >= 16.00 && lat <= 19.00 && lng > 121.60 && lng <= 122.50) {
+      regionName = "Cagayan Valley (Region II)";
+      climateType = "Type III";
+      soilSeries = "Cagayan Alluvial Sandy Loam";
+      hydrologicGroup = "A";
+      tempMax = 33.0;
+      tempMin = 23.5;
+      solarRad = 21.8;
+      cloudCoverPercent = 35;
+      windDirection = "ESE (Pacific Trade Winds)";
+    }
+    // 6. Bicol Region (Region V)
+    else if (lat >= 12.00 && lat <= 14.30 && lng >= 122.50 && lng <= 124.50) {
+      regionName = "Bicol Region (Region V)";
+      climateType = "Type II";
+      soilSeries = "Hydrometric Volcanic Ash Soil";
+      hydrologicGroup = "C";
+      tempMax = 31.0;
       tempMin = 24.2;
-      solarRad = 20.3;
-      cloudCoverPercent = 40;
-      windDirection = 'SW (Habagat)';
-    } else {
-      regionName = 'Davao & Mindanao Region';
-      climateType = 'Type IV';
-      soilSeries = 'Bukidnon Clay Loam';
-      hydrologicGroup = 'C';
-      defaultCurveNumber = 83;
+      solarRad = 19.2;
+      cloudCoverPercent = 55;
+      windDirection = "ENE (Typhoon Alley Track)";
+    }
+    // 7. MIMAROPA & Palawan (Region IV-B)
+    else if (lat >= 9.00 && lat <= 13.50 && lng >= 117.00 && lng <= 121.80) {
+      regionName = "MIMAROPA Region (Region IV-B)";
+      climateType = "Type I";
+      soilSeries = "Palawan Silty Clay Loam";
+      hydrologicGroup = "B";
+      tempMax = 32.0;
+      tempMin = 24.5;
+      solarRad = 21.5;
+      cloudCoverPercent = 38;
+      windDirection = "SW (Monsoon Flow)";
+    }
+    // 8. Visayas (Regions VI, VII, VIII)
+    else if (lat >= 9.00 && lat <= 12.00 && lng >= 122.00 && lng <= 126.00) {
+      regionName = "Visayas Islands Group";
+      climateType = "Type IV";
+      soilSeries = "Visayan Loam / Clay";
+      hydrologicGroup = "B";
       tempMax = 31.8;
-      tempMin = 24.2;
-      solarRad = 19.9;
-      cloudCoverPercent = 45;
-      windDirection = 'E/SE (Convergence)';
+      tempMin = 24.8;
+      solarRad = 20.5;
+      cloudCoverPercent = 48;
+      windDirection = "E (Visayan Trade Winds)";
+    }
+    // 9. Mindanao (Regions IX, X, XI, XII, XIII, BARMM)
+    else if (lat >= 4.50 && lat < 9.00 && lng >= 119.00 && lng <= 126.60) {
+      regionName = "Mindanao Island Group";
+      climateType = "Type IV";
+      soilSeries = "Mindanao Volcanic Clay";
+      hydrologicGroup = "A";
+      tempMax = 32.2;
+      tempMin = 25.0;
+      solarRad = 20.8;
+      cloudCoverPercent = 50;
+      windDirection = "S (Equatorial Flow)";
     }
 
-    setLocation(prev => ({
-      ...prev,
-      name: `${regionName} (${lat.toFixed(4)}°, ${lng.toFixed(4)}°)`,
-      region: regionName,
+    setLocation({
+      name: regionName,
       lat,
       lng,
-      elevation: Math.round(36),
-      climateType,
+      zoom: newZoom || 13,
+      region: regionName,
       soilSeries,
+      climateType,
       hydrologicGroup,
-      defaultCurveNumber,
-      solarRad,
-      tempMin,
+      defaultCurveNumber: hydrologicGroup === 'A' ? 68 : hydrologicGroup === 'B' ? 78 : hydrologicGroup === 'C' ? 85 : 89,
       tempMax,
+      tempMin,
+      solarRad,
       cloudCoverPercent,
-      windDirection,
-      zoom: newZoom !== undefined ? newZoom : prev.zoom,
-    }));
+      windDirection
+    });
   };
 
   const setZoom = (zoom: number) => {
