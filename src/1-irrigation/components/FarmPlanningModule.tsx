@@ -75,13 +75,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const { location, updateFromCoords } = useLocation();
   
   
-  React.useEffect(() => {
-    if (vertices.length > 0) {
-      localStorage.setItem("agriintel_farm_vertices", JSON.stringify(vertices));
-    } else {
-      localStorage.removeItem("agriintel_farm_vertices");
-    }
-  }, [vertices]);
+  
 
   const [vertices, setVertices] = useState<[number, number][]>(() => {
     const saved = localStorage.getItem("agriintel_farm_vertices");
@@ -98,6 +92,15 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
       [lat - 0.002, lng - 0.002]
     ];
   });
+
+  // Persist vertices to localStorage when updated, or clear when empty
+  React.useEffect(() => {
+    if (vertices.length > 0) {
+      localStorage.setItem("agriintel_farm_vertices", JSON.stringify(vertices));
+    } else {
+      localStorage.removeItem("agriintel_farm_vertices");
+    }
+  }, [vertices]);
 
 
 
