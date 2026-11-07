@@ -320,10 +320,11 @@ export function IrrigationDashboard() {
     }
   };
 
-  const [selectedRegionKey, setSelectedRegionKey] = useState<string>('Region IV-A (CALABARZON)');
+  const initialReg = (location && location.lat >= 14.4 && location.lat <= 14.7 && location.lng >= 120.9 && location.lng <= 121.1) ? "National Capital Region (NCR)" : "Region IV-A (CALABARZON)";
+    const [selectedRegionKey, setSelectedRegionKey] = useState<string>(initialReg);
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
-  const [regionPreset, setRegionPreset] = useState('Region IV-A (CALABARZON)');
+  const [regionPreset, setRegionPreset] = useState(initialReg);
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
