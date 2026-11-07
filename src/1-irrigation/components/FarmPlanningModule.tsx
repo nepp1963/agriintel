@@ -201,9 +201,9 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
             <h3 className="text-xs font-bold text-emerald-400 tracking-wider uppercase">
               1. FIELD SURVEY & BOUNDARY INPUTS
             </h3>
-            <button className="w-full py-2 bg-emerald-950/80 border border-emerald-700/60 hover:bg-emerald-900/50 text-emerald-300 text-xs font-semibold rounded transition">
-              📍 Log Mobile GPS Boundary Vertex
-            </button>
+            <button onClick={handleLogGPSVertex} className="w-full py-2 bg-emerald-950/80 border border-emerald-700/60 hover:bg-emerald-900/50 text-emerald-300 text-xs font-semibold rounded transition">
+                📍 Log Mobile GPS Boundary Vertex
+              </button>
             <button 
               onClick={() => setVertices([])}
               className="w-full py-2 bg-rose-950/50 border border-rose-800/50 hover:bg-rose-900/50 text-rose-300 text-xs font-semibold rounded transition"
