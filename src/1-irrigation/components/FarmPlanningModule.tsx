@@ -334,7 +334,21 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
               {vertices.length > 0 && (
                 <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
               )}
-              <Marker position={[13.93410, 121.36320]}>
+              <Marker 
+              position={vertices.length > 0 ? vertices[vertices.length - 1] : [13.9345, 121.3620]}
+              draggable={true}
+              eventHandlers={{
+                dragend: (e) => {
+                  const marker = e.target;
+                  const pos = marker.getLatLng();
+                  if (vertices.length > 0) {
+                    const updated = [...vertices];
+                    updated[updated.length - 1] = [pos.lat, pos.lng];
+                    setVertices(updated);
+                  }
+                }
+              }}
+            >
                 <Popup>Active Parcel Survey Center</Popup>
               </Marker>
             </MapContainer>
