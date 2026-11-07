@@ -90,6 +90,24 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
     ];
   });
 
+  // Sync vertices to active location context if location changes
+  React.useEffect(() => {
+    if (location && location.lat && location.lng) {
+      const saved = localStorage.getItem("agriintel_farm_vertices");
+      if (!saved) {
+        const lat = location.lat;
+        const lng = location.lng;
+        setVertices([
+          [lat + 0.002, lng - 0.002],
+          [lat + 0.002, lng + 0.002],
+          [lat - 0.002, lng + 0.002],
+          [lat - 0.002, lng - 0.002]
+        ]);
+      }
+    }
+  }, [location?.lat, location?.lng]);
+
+
   const isDark = theme === 'dark';
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
