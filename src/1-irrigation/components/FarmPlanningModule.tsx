@@ -68,6 +68,23 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   };
 
   // Button Action Handlers
+    const handleLogGPSVertex = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setVertices((prev: any) => [...prev, [latitude, longitude]]);
+        },
+        (error) => {
+          alert("Unable to retrieve mobile GPS location: " + error.message);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      alert("Geolocation is not supported by this browser.");
+    }
+  };
+
   const handleSavePlan = () => {
     const planData = {
       activeSite: "Southern Luzon (Batangas)",
