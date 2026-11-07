@@ -2,23 +2,23 @@ import React, { createContext, useContext, useState } from 'react';
 import { LocationData } from '../types/location';
 
 const defaultLocation: LocationData = {
-  name: 'Southern Luzon (Batangas)',
-  region: 'Southern Luzon (CALABARZON)',
-  lat: 13.9341,
-  lng: 121.3632,
-  elevation: 36,
+  name: 'Rizal Park Monument (Kilometer Zero, Manila)',
+  region: 'National Capital Region (NCR)',
+  lat: 14.5831,
+  lng: 120.9794,
+  elevation: 5,
   climateType: 'Type I',
-  soilSeries: 'Lipa Clay Loam',
+  soilSeries: 'Novaliches Clay Loam',
   hydrologicGroup: 'B',
-  defaultCurveNumber: 78,
-  solarRad: 20.1,
-  tempMin: 24.0,
-  tempMax: 31.5,
-  humidity: 76,
-  windSpeed: 2.0,
-  cloudCoverPercent: 42,
-  windDirection: 'ENE (Amihan Track)',
-  zoom: 11,
+  defaultCurveNumber: 75,
+  solarRad: 20.5,
+  tempMin: 25.0,
+  tempMax: 32.0,
+  humidity: 75,
+  windSpeed: 2.5,
+  cloudCoverPercent: 40,
+  windDirection: 'NE (Amihan)',
+  zoom: 13,
 };
 
 interface LocationContextType {
@@ -45,7 +45,18 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let cloudCoverPercent = 42;
     let windDirection = 'ENE (Amihan Track)';
 
-    if (lat >= 14.5) {
+    if (lat >= 14.5 && lng < 121.1) {
+      regionName = 'National Capital Region (NCR - Manila)';
+      climateType = 'Type I';
+      soilSeries = 'Novaliches Clay Loam';
+      hydrologicGroup = 'B';
+      defaultCurveNumber = 75;
+      tempMax = 32.0;
+      tempMin = 25.0;
+      solarRad = 20.5;
+      cloudCoverPercent = 40;
+      windDirection = 'NE (Amihan)';
+    } else if (lat >= 14.5) {
       regionName = 'Central & Northern Luzon';
       climateType = 'Type I';
       soilSeries = 'San Manuel Loam';
