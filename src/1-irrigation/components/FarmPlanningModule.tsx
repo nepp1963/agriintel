@@ -343,7 +343,11 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
                 maxZoom={19}
               />
               <MapClickHandler onMapClick={handleMapClick} />
-            <RecenterMap center={[centroidLat, centroidLng]} />
+            {
+      const centerLat = vertices.length > 0 ? vertices.reduce((s, v) => s + v[0], 0) / vertices.length : (location?.lat || 14.5831);
+      const centerLng = vertices.length > 0 ? vertices.reduce((s, v) => s + v[1], 0) / vertices.length : (location?.lng || 120.9794);
+      return <RecenterMap center={[centerLat, centerLng]} />;
+    }
               
               {vertices.length > 0 && (
                 <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />

@@ -167,7 +167,10 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       tempMin,
       solarRad,
       cloudCoverPercent,
-      windDirection
+      windDirection,
+      elevation: 25,
+      humidity: 78,
+      windSpeed: 12.5
     });
   };
 
