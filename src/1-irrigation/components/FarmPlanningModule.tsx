@@ -57,12 +57,21 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [terrainSlope, setTerrainSlope] = useState(2);
   const { location, updateFromCoords } = useLocation();
   
-  const [vertices, setVertices] = useState<[number, number][]>([
-    [14.5851, 120.9774],
-    [14.5851, 120.9814],
-    [14.5811, 120.9814],
-    [14.5811, 120.9774]
-  ]);
+  const [vertices, setVertices] = useState<[number, number][]>(() => {
+    const saved = localStorage.getItem("agriintel_farm_vertices");
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* fallback */ }
+    }
+    // Default box around current location context
+    const lat = location?.lat || 14.5831;
+    const lng = location?.lng || 120.9794;
+    return [
+      [lat + 0.002, lng - 0.002],
+      [lat + 0.002, lng + 0.002],
+      [lat - 0.002, lng + 0.002],
+      [lat - 0.002, lng - 0.002]
+    ];
+  });
 
   const isDark = theme === 'dark';
 
