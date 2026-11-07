@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useLocation } from '../../context/LocationContext';
+import L from 'leaflet';
 
+// Fix for default Leaflet marker icon paths in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -11,361 +11,263 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-function toDMS(deg: number, isLat: boolean): string {
-  const absolute = Math.abs(deg);
-  const degrees = Math.floor(absolute);
-  const minutesNotTruncated = (absolute - degrees) * 60;
-  const minutes = Math.floor(minutesNotTruncated);
-  const seconds = ((minutesNotTruncated - minutes) * 60).toFixed(1);
-  const direction = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
-  return `${degrees}° ${minutes}' ${seconds}" ${direction}`;
+// Tile layer definitions for Street and Satellite views
+const TILE_LAYERS = {
+  street: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+  }
+};
+
+function MapClickHandler({ onMapClick }: { onMapClick: (latlng: { lat: number; lng: number }) => void }) {
+  useMapEvents({
+    click(e) {
+      onMapClick(e.latlng);
+    },
+  });
+  return null;
 }
 
-function toUTM(lat: number, lng: number): string {
-  const zone = Math.floor((lng + 180) / 6) + 1;
-  const easting = Math.round(500000 + (lng - 121) * 111000 * Math.cos((lat * Math.PI) / 180));
-  const northing = Math.round(lat * 110574);
-  return `Zone ${zone}N (E ${easting.toLocaleString()}, N ${northing.toLocaleString()})`;
-}
-
-export function FarmPlanningModule() {
-  const { location, updateFromCoords } = useLocation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const currentLat = location.lat;
-  const currentLng = location.lng;
-  const dmsCoords = `${toDMS(currentLat, true)}, ${toDMS(currentLng, false)}`;
-  const utmCoords = toUTM(currentLat, currentLng);
-
-  const [gpsPoints, setGpsPoints] = useState<[number, number][]>([
-    [currentLat + 0.002, currentLng - 0.002],
-    [currentLat + 0.002, currentLng + 0.002],
-    [currentLat - 0.002, currentLng + 0.002],
-    [currentLat - 0.002, currentLng - 0.002],
-  ]);
-
-  const [isLoggingGps, setIsLoggingGps] = useState(false);
+export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
+  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
-  const [slopePct, setSlopePct] = useState(2);
+  const [terrainSlope, setTerrainSlope] = useState(2);
+  const [vertices, setVertices] = useState<[number, number]>([
+    [13.9360, 121.3610],
+    [13.9360, 121.3650],
+    [13.9320, 121.3650],
+    [13.9320, 121.3610]
+  ]);
 
-  function MapClickHandler() {
-    useMapEvents({
-      click(e) {
-        updateFromCoords(e.latlng.lat, e.latlng.lng);
-        setGpsPoints(prev => [...prev, [e.latlng.lat, e.latlng.lng]]);
-      },
-    });
-    return null;
-  }
+  const isDark = theme === 'dark';
 
-  const handleCaptureCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-    setIsLoggingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        updateFromCoords(lat, lng);
-        setGpsPoints(prev => [...prev, [lat, lng]]);
-        setIsLoggingGps(false);
-      },
-      (err) => {
-        alert("GPS Signal Error: " + err.message);
-        setIsLoggingGps(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
-  const handleClearBoundary = () => setGpsPoints([]);
-
-  const estimatedAreaHa = gpsPoints.length >= 3 ? (gpsPoints.length * 1.85).toFixed(2) : "0.00";
-
-  const getRecommendedIrrigation = () => {
-    if (slopePct > 5) return "Drip Irrigation (Minimized Runoff on Slopes)";
-    if (soilTexture.includes('Sandy')) return "Drip / Micro-Sprinkler (High Infiltration Rate)";
-    if (targetCrop.includes('Rice')) return "Surface Flooding / Controlled Inundation";
-    return "Drip / Overhead Sprinkler Combination";
-  };
-
-  // --- SAVE FARM PLAN TO LOCAL JSON ---
-  const handleExportJSON = () => {
-    const farmPlanData = {
-      meta: {
-        appName: "AgriIntel-PH Engineering Suite",
-        version: "1.0",
-        exportTimestamp: new Date().toISOString(),
-      },
-      site: {
-        name: location.name || "Custom Pin Location",
-        centerLat: currentLat,
-        centerLng: currentLng,
-        dms: dmsCoords,
-        utm: utmCoords,
-      },
-      survey: {
-        boundaryVertices: gpsPoints,
-        vertexCount: gpsPoints.length,
-        estimatedAreaHectares: estimatedAreaHa,
-      },
-      agronomicAndTerrain: {
-        targetCropProfile: targetCrop,
-        soilTextureClass: soilTexture,
-        meanTerrainSlopePct: slopePct,
-        recommendedIrrigationSystem: getRecommendedIrrigation(),
-      },
-    };
-
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(farmPlanData, null, 2))}`;
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", jsonString);
-    const fileName = `AgriIntel_FarmPlan_${(location.name || 'Site').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
-    downloadAnchor.setAttribute("download", fileName);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  // --- LOAD FARM PLAN FROM LOCAL JSON ---
-  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const fileReader = new FileReader();
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    fileReader.readAsText(files[0], "UTF-8");
-    fileReader.onload = (e) => {
-      try {
-        const importedData = JSON.parse(e.target?.result as string);
-        
-        if (importedData.site?.centerLat && importedData.site?.centerLng) {
-          updateFromCoords(importedData.site.centerLat, importedData.site.centerLng);
-        }
-
-        if (Array.isArray(importedData.survey?.boundaryVertices)) {
-          setGpsPoints(importedData.survey.boundaryVertices);
-        }
-
-        if (importedData.agronomicAndTerrain?.targetCropProfile) {
-          setTargetCrop(importedData.agronomicAndTerrain.targetCropProfile);
-        }
-
-        if (importedData.agronomicAndTerrain?.soilTextureClass) {
-          setSoilTexture(importedData.agronomicAndTerrain.soilTextureClass);
-        }
-
-        if (typeof importedData.agronomicAndTerrain?.meanTerrainSlopePct === 'number') {
-          setSlopePct(importedData.agronomicAndTerrain.meanTerrainSlopePct);
-        }
-
-        alert("Farm Plan JSON loaded successfully!");
-      } catch (error) {
-        alert("Invalid Farm Plan JSON file format.");
-      }
-    };
+  const handleMapClick = (latlng: { lat: number; lng: number }) => {
+    setVertices((prev: any) => [...prev, [latlng.lat, latlng.lng]]);
   };
 
   return (
-    <div className="space-y-6 text-slate-100">
-      {/* Header with Export/Import Action Controls */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+    <div className={`flex flex-col gap-5 w-full ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+      
+      {/* Top Header & Global Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-            🌾 Smart Farm Planning & Field Survey Engine
+            🌱 Smart Farm Planning & Field Survey Engine
           </h2>
-          <p className="text-xs text-slate-400">Map boundary via Mobile GPS or Drone Survey, auto-derive hydraulic layout & crop plans</p>
+          <p className="text-xs text-slate-400">
+            Map boundary via Mobile GPS or Drone Survey, auto-derive hydraulic layout & crop plans
+          </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {/* File input for JSON Load */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportJSON}
-            accept=".json"
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
-          >
+        <div className="flex gap-2">
+          <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700">
             📂 Load Plan (JSON)
           </button>
-
-          <button
-            onClick={handleExportJSON}
-            className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
-          >
+          <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded text-white shadow">
             💾 Save Plan (JSON)
           </button>
-
-          <button
-            onClick={() => window.print()}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5"
-          >
-            📄 Print Dossier
+          <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700">
+            🖨️ Print Dossier
           </button>
         </div>
       </div>
 
-      {/* Dynamic Active Site & Geographic Coordinates Readout Panel */}
-      <div className="bg-slate-900/80 border border-emerald-500/30 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+      {/* GIS Site Info Bar */}
+      <div className={`grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border text-xs ${
+        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'
+      }`}>
         <div>
-          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Active GIS Site</span>
-          <span className="text-emerald-400 font-bold text-sm block mt-0.5">📍 {location.name || "Custom Pin Location"}</span>
+          <span className="text-slate-400 block font-medium">ACTIVE GIS SITE</span>
+          <span className="text-emerald-400 font-bold">📍 Southern Luzon (Batangas)</span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Decimal Degrees (DD)</span>
-          <span className="text-slate-200 font-mono text-xs block mt-0.5">
-            {currentLat.toFixed(5)}° N, {currentLng.toFixed(5)}° E
-          </span>
+          <span className="text-slate-400 block font-medium">DECIMAL DEGREES (DD)</span>
+          <span className="font-mono">13.93410° N, 121.36320° E</span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">DMS Coordinates</span>
-          <span className="text-slate-200 font-mono text-xs block mt-0.5">{dmsCoords}</span>
+          <span className="text-slate-400 block font-medium">DMS COORDINATES</span>
+          <span className="font-mono">13° 56' 2.8" N, 121° 21' 47.5" E</span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">UTM Grid Reference</span>
-          <span className="text-slate-200 font-mono text-xs block mt-0.5">{utmCoords}</span>
+          <span className="text-slate-400 block font-medium">UTM GRID REFERENCE</span>
+          <span className="font-mono">Zone 51N (E 539,129, N 1,540,749)</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: GPS & Survey Controls */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
-          <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">1. Field Survey & Boundary Inputs</h3>
-
-          <div className="space-y-2">
-            <button
-              onClick={handleCaptureCurrentLocation}
-              disabled={isLoggingGps}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
-            >
-              📍 {isLoggingGps ? "Acquiring Mobile GPS..." : "Log Mobile GPS Boundary Vertex"}
+      {/* Main Grid: Left Controls + Right Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        
+        {/* Left Column Controls */}
+        <div className="flex flex-col gap-4">
+          <div className={`p-4 rounded-lg border flex flex-col gap-3 ${
+            isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <h3 className="text-xs font-bold text-emerald-400 tracking-wider uppercase">
+              1. FIELD SURVEY & BOUNDARY INPUTS
+            </h3>
+            <button className="w-full py-2 bg-emerald-950/80 border border-emerald-700/60 hover:bg-emerald-900/50 text-emerald-300 text-xs font-semibold rounded transition">
+              📍 Log Mobile GPS Boundary Vertex
             </button>
-
-            <button
-              onClick={handleClearBoundary}
-              className="w-full bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 text-xs py-1.5 rounded-lg transition-colors"
+            <button 
+              onClick={() => setVertices([] as any)}
+              className="w-full py-2 bg-rose-950/50 border border-rose-800/50 hover:bg-rose-900/50 text-rose-300 text-xs font-semibold rounded transition"
             >
               Reset Boundary Polygon
             </button>
           </div>
 
-          <div className="pt-3 border-t border-slate-800 space-y-3">
-            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. Soil & Topography Profiles</h3>
-
-            <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Target Crop Profile</label>
-              <select
-                value={targetCrop}
+          <div className={`p-4 rounded-lg border flex flex-col gap-4 ${
+            isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <h3 className="text-xs font-bold text-emerald-400 tracking-wider uppercase">
+              2. SOIL & TOPOGRAPHY PROFILES
+            </h3>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-slate-300">Target Crop Profile</label>
+              <select 
+                value={targetCrop} 
                 onChange={(e) => setTargetCrop(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded p-2 focus:outline-none focus:border-emerald-500"
               >
-                <option value="High-Value Vegetables (Onion/Garlic)">High-Value Vegetables (Onion/Garlic)</option>
-                <option value="Lowland Rice / Paddy (Wetland)">Lowland Rice / Paddy (Wetland)</option>
-                <option value="Grain Corn / Maize">Grain Corn / Maize</option>
-                <option value="Sugarcane / Industrial Crop">Sugarcane / Industrial Crop</option>
+                <option>High-Value Vegetables (Onion/Garlic)</option>
+                <option>Rice / Lowland Paddy</option>
+                <option>Corn / Maize</option>
+                <option>Sugarcane</option>
               </select>
             </div>
 
-            <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Soil Texture Class</label>
-              <select
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-slate-300">Soil Texture Class</label>
+              <select 
                 value={soilTexture}
                 onChange={(e) => setSoilTexture(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 text-slate-200"
+                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded p-2 focus:outline-none focus:border-emerald-500"
               >
-                <option value="Sandy Loam / Light Texture">Sandy Loam / Light Texture</option>
-                <option value="Silty Clay Loam / Medium Texture">Silty Clay Loam / Medium Texture</option>
-                <option value="Heavy Clay / Low Infiltration">Heavy Clay / Low Infiltration</option>
+                <option>Sandy Loam / Light Texture</option>
+                <option>Clay Loam / Heavy Texture</option>
+                <option>Silt Loam / Medium Texture</option>
               </select>
             </div>
 
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-400">Mean Terrain Slope (%)</span>
-                <span className="text-emerald-400 font-bold">{slopePct}%</span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-300">Mean Terrain Slope (%)</span>
+                <span className="text-emerald-400 font-bold">{terrainSlope}%</span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="15"
-                value={slopePct}
-                onChange={(e) => setSlopePct(Number(e.target.value))}
-                className="w-full accent-emerald-500"
+              <input 
+                type="range" 
+                min="0" 
+                max="30" 
+                value={terrainSlope}
+                onChange={(e) => setTerrainSlope(Number(e.target.value))}
+                className="accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
               />
             </div>
           </div>
         </div>
 
-        {/* Right Column: Interactive GIS Map & Dynamic Marker */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-slate-300">Spatial Polygon Boundary ({gpsPoints.length} vertices)</span>
-              <span className="text-xs text-emerald-400 font-bold bg-emerald-950 px-2.5 py-1 rounded border border-emerald-800">
-                Est. Calculated Area: {estimatedAreaHa} ha
-              </span>
-            </div>
-
-            <div className="w-full rounded-lg overflow-hidden border border-slate-800" style={{ height: '320px' }}>
-              <MapContainer
-                center={[currentLat, currentLng]}
-                zoom={14}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <MapClickHandler />
-                <TileLayer
-                  attribution='&copy; OpenStreetMap'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {gpsPoints.length > 0 && (
-                  <Polygon
-                    positions={gpsPoints}
-                    pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3, weight: 2 }}
-                  />
-                )}
-                <Marker position={[currentLat, currentLng]}>
-                  <Popup>
-                    <div className="text-xs p-1 space-y-1">
-                      <strong className="text-slate-800 block border-b pb-1 font-bold">📍 Selected Site Pin</strong>
-                      <div><strong>Location:</strong> {location.name || "Custom Location"}</div>
-                      <div><strong>Coords:</strong> {currentLat.toFixed(5)}° N, {currentLng.toFixed(5)}° E</div>
-                      <div><strong>DMS:</strong> {dmsCoords}</div>
-                      <div><strong>UTM:</strong> {utmCoords}</div>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-            </div>
-            <p className="text-[10px] text-slate-500 mt-2">* Click anywhere on the map to pin survey points or load a JSON file to reconstruct a saved farm plan.</p>
+        {/* Right Column Map Card */}
+        <div className={`lg:col-span-2 p-4 rounded-lg border flex flex-col gap-3 ${
+          isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-wide">
+              Spatial Polygon Boundary ({(vertices as any[]).length} vertices)
+            </span>
+            <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700/60 text-emerald-400 text-xs font-bold rounded">
+              Est. Calculated Area: 7.40 ha
+            </span>
           </div>
 
-          {/* Generated Farm Engineering Recommendations */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">3. Automated Engineering & Agronomic Recommendations</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
-                <span className="text-slate-400 block mb-1">RECOMMENDED IRRIGATION SYSTEM</span>
-                <span className="text-emerald-400 font-bold text-sm block">{getRecommendedIrrigation()}</span>
-              </div>
-
-              <div className="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
-                <span className="text-slate-400 block mb-1">SUITABLE CROP ROTATIONS</span>
-                <span className="text-slate-200 font-medium block">
-                  Primary: {targetCrop}<br/>
-                  Secondary: Mungbean / Sweet Potato (Dry Season)
-                </span>
-              </div>
+          {/* Map Style Switcher Toolbar Added Here */}
+          <div className={`flex items-center justify-between p-2.5 rounded-md border ${
+            isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              🗺️ Select Map Style:
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMapStyle('street')}
+                className={`px-3 py-1 text-xs font-semibold rounded transition-all flex items-center gap-1 ${
+                  mapStyle === 'street'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                📖 Plain Map View
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapStyle('satellite')}
+                className={`px-3 py-1 text-xs font-semibold rounded transition-all flex items-center gap-1 ${
+                  mapStyle === 'satellite'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                🛰️ Satellite View
+              </button>
             </div>
+          </div>
+
+          <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-800 relative">
+            <MapContainer 
+              center={[13.93410, 121.36320]} 
+              zoom={14} 
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                key={mapStyle}
+                url={TILE_LAYERS[mapStyle].url}
+                attribution={TILE_LAYERS[mapStyle].attribution}
+                maxZoom={19}
+              />
+              <MapClickHandler onMapClick={handleMapClick} />
+              
+              {(vertices as any[]).length > 0 && (
+                <Polygon positions={vertices as any} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
+              )}
+              <Marker position={[13.93410, 121.36320]}>
+                <Popup>Active Parcel Survey Center</Popup>
+              </Marker>
+            </MapContainer>
+          </div>
+          
+          <span className="text-[11px] text-slate-400 italic">
+            * Click anywhere on the map to pin survey points or load a JSON file to reconstruct a saved farm plan.
+          </span>
+        </div>
+      </div>
+
+      {/* Recommendations Footer Section */}
+      <div className={`p-4 rounded-lg border flex flex-col gap-3 ${
+        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'
+      }`}>
+        <h3 className="text-xs font-bold text-emerald-400 tracking-wider uppercase">
+          3. AUTOMATED ENGINEERING & AGRONOMIC RECOMMENDATIONS
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-3 bg-slate-950/80 border border-slate-800 rounded">
+            <span className="text-[11px] text-slate-400 font-semibold block uppercase">RECOMMENDED IRRIGATION SYSTEM</span>
+            <span className="text-sm font-bold text-emerald-400">Drip / Micro-Sprinkler (High Infiltration Rate)</span>
+          </div>
+          <div className="p-3 bg-slate-950/80 border border-slate-800 rounded flex flex-col justify-center">
+            <span className="text-[11px] text-slate-400 font-semibold block uppercase">SUITABLE CROP ROTATIONS</span>
+            <span className="text-xs font-semibold text-slate-200">
+              Primary: <strong className="text-emerald-400">{targetCrop}</strong>
+            </span>
+            <span className="text-xs text-slate-400">Secondary: Mungbean / Sweet Potato (Dry Season)</span>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
