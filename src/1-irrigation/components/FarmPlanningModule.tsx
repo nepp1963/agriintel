@@ -24,6 +24,17 @@ const TILE_LAYERS = {
   }
 };
 
+
+function RecenterMap({ center }: { center: [number, number] }) {
+  const map = useMapEvents({});
+  React.useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+  return null;
+}
+
 function MapClickHandler({ onMapClick }: { onMapClick: (latlng: { lat: number; lng: number }) => void }) {
   useMapEvents({
     click(e) {
@@ -51,7 +62,13 @@ const calculateArea = (verts: [number, number][]) => {
 };
 
 export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
-  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
+  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>(() => {
+    return (localStorage.getItem("agriintel_map_style") as 'street' | 'satellite') || 'satellite';
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem("agriintel_map_style", mapStyle);
+  }, [mapStyle]);
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
@@ -326,6 +343,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
                 maxZoom={19}
               />
               <MapClickHandler onMapClick={handleMapClick} />
+            <RecenterMap center={[centroidLat, centroidLng]} />
               
               {vertices.length > 0 && (
                 <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
