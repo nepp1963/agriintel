@@ -32,6 +32,23 @@ function MapClickHandler({ onMapClick }: { onMapClick: (latlng: { lat: number; l
   return null;
 }
 
+const calculateArea = (verts: [number, number][]) => {
+  if (!verts || verts.length < 3) return 0;
+  try {
+    let area = 0;
+    const n = verts.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const lat1 = verts[i][0] * (Math.PI / 180);
+      const lat2 = verts[j][0] * (Math.PI / 180);
+      const lng1 = verts[i][1] * (Math.PI / 180);
+      const lng2 = verts[j][1] * (Math.PI / 180);
+      area += (lng2 - lng1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+    }
+    return Math.abs(area * 6378137 * 6378137 / 2.0) / 10000;
+  } catch { return 0; }
+};
+
 export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
@@ -238,7 +255,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
               Spatial Polygon Boundary ({vertices.length} vertices)
             </span>
             <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700/60 text-emerald-400 text-xs font-bold rounded">
-              Est. Calculated Area: 7.40 ha
+              Est. Calculated Area: {calculateArea(vertices).toFixed(2)} ha
             </span>
           </div>
 
