@@ -130,6 +130,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
           </p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => { const lat = vertices.reduce((s, v) => s + v[0], 0) / (vertices.length || 1); const lng = vertices.reduce((s, v) => s + v[1], 0) / (vertices.length || 1); localStorage.setItem("agriintel_active_site", JSON.stringify({lat, lng})); alert(`Site coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) synced to regional maps!`); }} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs font-semibold rounded transition flex items-center gap-1.5 shadow-sm" title="Anchor regional weather, hazard, and watershed layers to this farm's center">🔗 Sync to Regional Maps</button>
           <button 
             onClick={handleLoadPlan}
             className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700 cursor-pointer"
