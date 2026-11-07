@@ -254,7 +254,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
             <span className="text-xs font-bold text-slate-200 uppercase tracking-wide">
               Spatial Polygon Boundary ({vertices.length} vertices)
             </span>
-            <div className="flex items-center gap-2"><button onClick={() => { const lat = vertices.reduce((s, v) => s + v[0], 0) / (vertices.length || 1); const lng = vertices.reduce((s, v) => s + v[1], 0) / (vertices.length || 1); localStorage.setItem("agriintel_active_site", JSON.stringify({lat, lng})); alert(`Site coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) synced to regional maps!`); }} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs font-semibold rounded transition flex items-center gap-1 shadow-sm" title="Anchor regional weather, hazard, and watershed layers to this farm's center">🔗 Sync to Regional Maps</button><span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700/60 text-emerald-400 text-xs font-bold rounded">
+            <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700/60 text-emerald-400 text-xs font-bold rounded">
               Est. Calculated Area: {calculateArea(vertices).toFixed(2)} ha
             </span>
           </div>
