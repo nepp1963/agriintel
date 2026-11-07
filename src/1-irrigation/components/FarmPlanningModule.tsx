@@ -55,11 +55,13 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
+  const { location, updateFromCoords } = useLocation();
+  
   const [vertices, setVertices] = useState<[number, number][]>([
-    [13.9360, 121.3610],
-    [13.9360, 121.3650],
-    [13.9320, 121.3650],
-    [13.9320, 121.3610]
+    [14.5851, 120.9774],
+    [14.5851, 120.9814],
+    [14.5811, 120.9814],
+    [14.5811, 120.9774]
   ]);
 
   const isDark = theme === 'dark';
@@ -70,9 +72,11 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
 
   // Button Action Handlers
   const handleSavePlan = () => {
+    const centroidLat = vertices.reduce((s, v) => s + v[0], 0) / (vertices.length || 1);
+    const centroidLng = vertices.reduce((s, v) => s + v[1], 0) / (vertices.length || 1);
     const planData = {
-      activeSite: "Southern Luzon (Batangas)",
-      coordinates: { lat: 13.93410, lng: 121.36320 },
+      activeSite: location.name,
+      coordinates: { lat: centroidLat, lng: centroidLng },
       targetCrop,
       soilTexture,
       terrainSlope,
@@ -302,7 +306,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
 
           <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-800 relative">
             <MapContainer 
-              center={[13.93410, 121.36320]} 
+              center={vertices.length > 0 ? [vertices.reduce((s, v) => s + v[0], 0) / vertices.length, vertices.reduce((s, v) => s + v[1], 0) / vertices.length] : [location.lat, location.lng]} 
               zoom={14} 
               style={{ height: '100%', width: '100%' }}
             >
