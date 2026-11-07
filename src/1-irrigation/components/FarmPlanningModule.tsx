@@ -54,14 +54,22 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
-  const [vertices, setVertices] = useState<[number, number][]>([
-    [13.9360, 121.3610],
-    [13.9360, 121.3650],
-    [13.9320, 121.3650],
-    [13.9320, 121.3610]
-  ]);
+  const [vertices, setVertices] = useState<[number, number][]>(() => {
+    const saved = localStorage.getItem("agriintel_farm_vertices");
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return [
+      [13.9345, 121.3620],
+      [13.9355, 121.3635],
+      [13.9340, 121.3645],
+      [13.9330, 121.3625]
+    ];
+  });
 
-  const isDark = theme === 'dark';
+  useEffect(() => {
+    localStorage.setItem("agriintel_farm_vertices", JSON.stringify(vertices));
+  }, [vertices]);const isDark = theme === 'dark';
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
     setVertices((prev: any) => [...prev, [latlng.lat, latlng.lng]]);
