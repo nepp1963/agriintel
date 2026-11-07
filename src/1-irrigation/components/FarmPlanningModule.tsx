@@ -37,7 +37,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
-  const [vertices, setVertices] = useState<[number, number]>([
+  const [vertices, setVertices] = useState<[number, number][]>([
     [13.9360, 121.3610],
     [13.9360, 121.3650],
     [13.9320, 121.3650],
@@ -48,6 +48,55 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
     setVertices((prev: any) => [...prev, [latlng.lat, latlng.lng]]);
+  };
+
+  // Button Action Handlers
+  const handleSavePlan = () => {
+    const planData = {
+      activeSite: "Southern Luzon (Batangas)",
+      coordinates: { lat: 13.93410, lng: 121.36320 },
+      targetCrop,
+      soilTexture,
+      terrainSlope,
+      vertices,
+      timestamp: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(planData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `agriintel-farm-plan-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLoadPlan = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          if (data.targetCrop) setTargetCrop(data.targetCrop);
+          if (data.soilTexture) setSoilTexture(data.soilTexture);
+          if (data.terrainSlope !== undefined) setTerrainSlope(data.terrainSlope);
+          if (data.vertices) setVertices(data.vertices);
+          alert('Farm plan loaded successfully!');
+        } catch (err) {
+          alert('Invalid JSON file format.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const handlePrintDossier = () => {
+    window.print();
   };
 
   return (
@@ -64,13 +113,22 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700">
+          <button 
+            onClick={handleLoadPlan}
+            className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700 cursor-pointer"
+          >
             📂 Load Plan (JSON)
           </button>
-          <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded text-white shadow">
+          <button 
+            onClick={handleSavePlan}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded text-white shadow cursor-pointer"
+          >
             💾 Save Plan (JSON)
           </button>
-          <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700">
+          <button 
+            onClick={handlePrintDossier}
+            className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700 cursor-pointer"
+          >
             🖨️ Print Dossier
           </button>
         </div>
@@ -113,7 +171,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
               📍 Log Mobile GPS Boundary Vertex
             </button>
             <button 
-              onClick={() => setVertices([] as any)}
+              onClick={() => setVertices([])}
               className="w-full py-2 bg-rose-950/50 border border-rose-800/50 hover:bg-rose-900/50 text-rose-300 text-xs font-semibold rounded transition"
             >
               Reset Boundary Polygon
@@ -177,14 +235,14 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
         }`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-200 uppercase tracking-wide">
-              Spatial Polygon Boundary ({(vertices as any[]).length} vertices)
+              Spatial Polygon Boundary ({vertices.length} vertices)
             </span>
             <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-700/60 text-emerald-400 text-xs font-bold rounded">
               Est. Calculated Area: 7.40 ha
             </span>
           </div>
 
-          {/* Map Style Switcher Toolbar Added Here */}
+          {/* Map Style Switcher Toolbar */}
           <div className={`flex items-center justify-between p-2.5 rounded-md border ${
             isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
           }`}>
@@ -231,8 +289,8 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
               />
               <MapClickHandler onMapClick={handleMapClick} />
               
-              {(vertices as any[]).length > 0 && (
-                <Polygon positions={vertices as any} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
+              {vertices.length > 0 && (
+                <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
               )}
               <Marker position={[13.93410, 121.36320]}>
                 <Popup>Active Parcel Survey Center</Popup>
