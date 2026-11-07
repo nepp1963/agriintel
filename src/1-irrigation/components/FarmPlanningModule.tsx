@@ -1,4 +1,3 @@
-import { useLocation } from "../../context/LocationContext";
 import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -23,17 +22,6 @@ const TILE_LAYERS = {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   }
 };
-
-
-function RecenterMap({ center }: { center: [number, number] }) {
-  const map = useMapEvents({});
-  React.useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.setView(center, map.getZoom());
-    }
-  }, [center, map]);
-  return null;
-}
 
 function MapClickHandler({ onMapClick }: { onMapClick: (latlng: { lat: number; lng: number }) => void }) {
   useMapEvents({
@@ -62,48 +50,16 @@ const calculateArea = (verts: [number, number][]) => {
 };
 
 export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
-  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>(() => {
-    return (localStorage.getItem("agriintel_map_style") as 'street' | 'satellite') || 'satellite';
-  });
-
-  React.useEffect(() => {
-    localStorage.setItem("agriintel_map_style", mapStyle);
-  }, [mapStyle]);
+  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
-  const { location, updateFromCoords } = useLocation();
-  
-  
-  
-
-  const [vertices, setVertices] = useState<[number, number][]>(() => {
-    const saved = localStorage.getItem("agriintel_farm_vertices");
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* fallback */ }
-    }
-    // Default box around current location context
-    const lat = location?.lat || 14.5831;
-    const lng = location?.lng || 120.9794;
-    return [
-      [lat + 0.002, lng - 0.002],
-      [lat + 0.002, lng + 0.002],
-      [lat - 0.002, lng + 0.002],
-      [lat - 0.002, lng - 0.002]
-    ];
-  });
-
-  // Persist vertices to localStorage when updated, or clear when empty
-  React.useEffect(() => {
-    if (vertices.length > 0) {
-      localStorage.setItem("agriintel_farm_vertices", JSON.stringify(vertices));
-    } else {
-      localStorage.removeItem("agriintel_farm_vertices");
-    }
-  }, [vertices]);
-
-
-
+  const [vertices, setVertices] = useState<[number, number][]>([
+    [13.9360, 121.3610],
+    [13.9360, 121.3650],
+    [13.9320, 121.3650],
+    [13.9320, 121.3610]
+  ]);
 
   const isDark = theme === 'dark';
 
@@ -113,11 +69,9 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
 
   // Button Action Handlers
   const handleSavePlan = () => {
-    const centroidLat = vertices.reduce((s, v) => s + v[0], 0) / (vertices.length || 1);
-    const centroidLng = vertices.reduce((s, v) => s + v[1], 0) / (vertices.length || 1);
     const planData = {
-      activeSite: location.name,
-      coordinates: { lat: centroidLat, lng: centroidLng },
+      activeSite: "Southern Luzon (Batangas)",
+      coordinates: { lat: 13.93410, lng: 121.36320 },
       targetCrop,
       soilTexture,
       terrainSlope,
@@ -176,13 +130,6 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => {
-    const lat = vertices.reduce((s, v) => s + v[0], 0) / (vertices.length || 1);
-    const lng = vertices.reduce((s, v) => s + v[1], 0) / (vertices.length || 1);
-    localStorage.setItem("agriintel_active_site", JSON.stringify({lat, lng}));
-    updateFromCoords(lat, lng);
-    alert(`Master farm coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) synced to regional maps & SPIS layers!`);
-  }} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs font-semibold rounded transition flex items-center gap-1.5 shadow-sm" title="Anchor regional weather, hazard, and watershed layers to this farm's center">🔗 Sync other Regional Maps</button>
           <button 
             onClick={handleLoadPlan}
             className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700 cursor-pointer"
@@ -347,7 +294,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
 
           <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-800 relative">
             <MapContainer 
-              center={vertices.length > 0 ? [vertices.reduce((s, v) => s + v[0], 0) / vertices.length, vertices.reduce((s, v) => s + v[1], 0) / vertices.length] : [location.lat, location.lng]} 
+              center={[13.93410, 121.36320]} 
               zoom={14} 
               style={{ height: '100%', width: '100%' }}
             >
@@ -358,7 +305,6 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
                 maxZoom={19}
               />
               <MapClickHandler onMapClick={handleMapClick} />
-            <RecenterMap center={[vertices.length > 0 ? vertices.reduce((s, v) => s + v[0], 0) / vertices.length : (location?.lat || 14.5831), vertices.length > 0 ? vertices.reduce((s, v) => s + v[1], 0) / vertices.length : (location?.lng || 120.9794)]} />
               
               {vertices.length > 0 && (
                 <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
