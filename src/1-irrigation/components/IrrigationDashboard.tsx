@@ -1,3 +1,4 @@
+import { fetchBatchElevations, calculateSegmentSlope } from "../../utils/terrainUtils";
 import React, { useState, useEffect } from 'react';
 import SoilSalinityModule from './SoilSalinityModule';
 import FarmPlanningModule from './FarmPlanningModule';
@@ -331,26 +332,22 @@ export function IrrigationDashboard() {
   const [extractedElevation, setExtractedElevation] = useState<number>(520);
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(28.5);
 
-  const computeTopography = (lat: number, lng: number) => {
-    if (lat >= 14.12 && lat <= 14.19 && lng >= 121.20 && lng <= 121.27) {
-      return { elev: 580, slope: 30.0 };
-    } 
-    else if (lat >= 14.08 && lat <= 14.17 && lng >= 120.90 && lng <= 121.13) {
-      return { elev: 610, slope: 25.0 };
+  const computeTopography = async (lat: number, lng: number) => {
+    try {
+      const elevations = await fetchBatchElevations([{ lat, lng }]);
+      const liveElev = elevations[0] ?? 20;
+      const offsetElevations = await fetchBatchElevations([{ lat: lat + 0.0001, lng: lng + 0.0001 }]);
+      const adjElev = offsetElevations[0] ?? liveElev;
+      const slopeData = calculateSegmentSlope(
+        { lat, lng, elevation: liveElev },
+        { lat: lat + 0.0001, lng: lng + 0.0001, elevation: adjElev },
+        "Dynamic Terrain Segment"
+      );
+      return { elev: Number(liveElev.toFixed(1)), slope: Number(slopeData.slopePercent.toFixed(1)) };
+    } catch (err) {
+      console.error("Open-Meteo elevation fetch failed:", err);
+      return { elev: 20, slope: 2.0 };
     }
-    else if (lat >= 16.0 && lat <= 17.5 && lng >= 120.5 && lng <= 121.5) {
-      return { elev: 1350, slope: 35.0 };
-    }
-    else if (lat >= 14.25 && lat <= 14.48 && lng >= 120.90 && lng <= 121.05) {
-      return { elev: 25, slope: 3.5 };
-    }
-    else if (lat >= 14.8 && lat <= 15.6 && lng >= 120.5 && lng <= 121.0) {
-      return { elev: 8, slope: 1.0 };
-    }
-    else if (lat >= 14.4 && lat <= 14.6 && lng >= 120.8 && lng <= 121.0) {
-      return { elev: 4, slope: 0.8 };
-    }
-    return { elev: 20, slope: 2.0 };
   };
 
   useEffect(() => {
@@ -359,7 +356,7 @@ export function IrrigationDashboard() {
     }
   }, [selectedRegionKey]);
 
-  const handleMapLocationSelect = (lat: number, lng: number) => {
+  const handleMapLocationSelect = async (lat: number, lng: number) => {
     updateFromCoords(lat, lng);
 
     let closestKey = selectedRegionKey;
@@ -376,7 +373,7 @@ export function IrrigationDashboard() {
     setSelectedRegionKey(closestKey);
     setRegionPreset(closestKey);
 
-    const topo = computeTopography(lat, lng);
+    const topo = await computeTopography(lat, lng);
     setExtractedElevation(topo.elev);
     setExtractedSlopePct(topo.slope);
     setSoilSlopePct(topo.slope);
