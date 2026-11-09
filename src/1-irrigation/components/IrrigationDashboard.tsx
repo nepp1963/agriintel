@@ -329,7 +329,7 @@ export function IrrigationDashboard() {
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
-  const [extractedElevation, setExtractedElevation] = useState<number>(520);
+  const [extractedElevation, setExtractedElevation] = useState<number>(10);
   const [extractedSlopePct, setExtractedSlopePct] = useState<number>(28.5);
 
   const computeTopography = async (lat: number, lng: number) => {
@@ -343,7 +343,7 @@ export function IrrigationDashboard() {
         { lat: lat + 0.0001, lng: lng + 0.0001, elevation: adjElev },
         "Dynamic Terrain Segment"
       );
-      return { elev: Number(liveElev.toFixed(1)), slope: Number(slopeData.slopePercent.toFixed(1)) };
+      return { elev: Number(liveElev.toFixed(1)), slope: Number(Math.abs(slopeData.slopePercent).toFixed(1)) };
     } catch (err) {
       console.error("Open-Meteo elevation fetch failed:", err);
       return { elev: 20, slope: 2.0 };
