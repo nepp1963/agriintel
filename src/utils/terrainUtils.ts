@@ -120,7 +120,7 @@ export async function analyzeFieldTerrain(boundaryPoints: GeoPoint[]) {
   
   const pointsWithElevation: TerrainPoint[] = boundaryPoints.map((pt, idx) => ({
     ...pt,
-    elevation: rawElevations[idx] ?? 10.0,
+    elevation: rawElevations[idx] ?? 0,
   }));
 
   const slopeResults: SlopeResult[] = [];

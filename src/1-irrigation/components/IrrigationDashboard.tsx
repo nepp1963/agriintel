@@ -335,7 +335,7 @@ export function IrrigationDashboard() {
   const computeTopography = async (lat: number, lng: number) => {
     try {
       const elevations = await fetchBatchElevations([{ lat, lng }]);
-      const liveElev = elevations[0] ?? 20;
+      const liveElev = elevations[0] ?? 0;
       const offsetElevations = await fetchBatchElevations([{ lat: lat + 0.0001, lng: lng + 0.0001 }]);
       const adjElev = offsetElevations[0] ?? liveElev;
       const slopeData = calculateSegmentSlope(

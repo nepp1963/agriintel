@@ -1,3 +1,5 @@
+import { SnapToFarmButton } from "./SnapToFarmButton";
+import { useFarmPlanningCursor } from "../hooks/useFarmPlanningCursor";
 import React, { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -23,6 +25,7 @@ function MapClickHandler({ onAddVertex }) {
 }
 
 export default function FarmPlanningSurveyEngine() {
+  const mapRef = React.useRef(null);
   const [vertices, setVertices] = useState([
     { lat: 13.9350, lng: 121.3610 },
     { lat: 13.9360, lng: 121.3650 },
@@ -253,7 +256,8 @@ export default function FarmPlanningSurveyEngine() {
           </div>
 
           {/* Leaflet Map */}
-          <div className="w-full h-full">
+          <div className="w-full h-full relative">
+
             <MapContainer center={[13.9341, 121.3632]} zoom={15} style={{ width: '100%', height: '100%' }} zoomControl={false}>
               {mapStyle === 'satellite' ? (
                 <TileLayer
