@@ -882,7 +882,7 @@ export function IrrigationDashboard() {
                     <div className="text-xs space-y-1">
                       <strong>📍 Topographic Point Analysis</strong><br/>
                       Elevation: {extractedElevation} m<br/>
-                      Calculated Slope: {extractedSlopePct}%<br/>
+                      Calculated Slope: {extractedSlopePct}% ({isFinite(extractedSlopePct) ? (Math.atan(extractedSlopePct / 100) * (180 / Math.PI)).toFixed(1) : 0}°)<br/>
                       {extractedSlopePct > 18 ? <span className="text-red-500 font-bold">⚠️ Warning: Steep Slope (&gt;18%) - Surface Irrigation Non-Viable</span> : <span className="text-emerald-500 font-bold">✅ Suitable for Standard Irrigation</span>}
                     </div>
                   </Popup>
