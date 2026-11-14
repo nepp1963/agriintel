@@ -329,8 +329,8 @@ export function IrrigationDashboard() {
   const [selectedSoilType, setSelectedSoilType] = useState<string>(activeRegionData.predominantSoil);
   const [cropProfile, setCropProfile] = useState<string>('Lowland Rice / Paddy (Wetland)');
 
-  const [extractedElevation, setExtractedElevation] = useState<number>(10);
-  const [extractedSlopePct, setExtractedSlopePct] = useState<number>(28.5);
+  const [extractedElevation, setExtractedElevation] = useState<number>(0);
+  const [extractedSlopePct, setExtractedSlopePct] = useState<number>(0);
 
   const computeTopography = async (lat: number, lng: number) => {
     try {
