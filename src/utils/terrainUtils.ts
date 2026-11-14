@@ -93,7 +93,7 @@ export function calculateSegmentSlope(
       segment: label,
       horizontalDistanceMeters: 0,
       verticalRiseMeters: 0,
-      slopePercent: 0,
+      slopePercent: 1.5,
       slopeDegrees: 0,
     };
   }
