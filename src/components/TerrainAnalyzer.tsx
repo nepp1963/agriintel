@@ -1,6 +1,13 @@
 // src/components/TerrainAnalyzer.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { analyzeFieldTerrain, TerrainPoint, SlopeResult } from '../utils/terrainUtils';
+
+interface SavedGISLocation {
+  module: string;
+  version: string;
+  timestamp: string;
+  boundaryPoints: Array<{ lat: number; lng: number }>;
+}
 
 export const TerrainAnalyzer: React.FC = () => {
   // Default sample boundary points (e.g., agricultural field perimeter)
@@ -16,6 +23,8 @@ export const TerrainAnalyzer: React.FC = () => {
   const [slopeResults, setSlopeResults] = useState<SlopeResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleRunAnalysis = async () => {
     setLoading(true);
     setError(null);
@@ -30,6 +39,64 @@ export const TerrainAnalyzer: React.FC = () => {
     }
   };
 
+  // 1. Save Boundary Location / Points as JSON
+  const handleSaveLocation = () => {
+    const payload: SavedGISLocation = {
+      module: 'AgriIntelPH_TerrainAnalyzer',
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      boundaryPoints,
+    };
+
+    const jsonString = JSON.stringify(payload, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    const dateTag = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `agriintel-terrain-boundary-${dateTag}.json`;
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // 2. Trigger Hidden File Input
+  const handleLoadButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 3. Load Location / Points from JSON File
+  const handleLoadLocationFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed: SavedGISLocation = JSON.parse(content);
+
+        if (!parsed.boundaryPoints || !Array.isArray(parsed.boundaryPoints)) {
+          throw new Error('Invalid terrain boundary JSON structure.');
+        }
+
+        setBoundaryPoints(parsed.boundaryPoints);
+      } catch (err) {
+        console.error('Failed to load terrain JSON:', err);
+        alert('Invalid JSON file. Please select a valid AgriIntel terrain boundary file.');
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-6">
       <div>
@@ -39,14 +106,43 @@ export const TerrainAnalyzer: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* Action Controls & Save/Load Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           onClick={handleRunAnalysis}
           disabled={loading}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
         >
           {loading ? 'Analyzing Terrain...' : 'Run Terrain Calibration'}
         </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSaveLocation}
+            className="px-3 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors cursor-pointer"
+            title="Save current boundary points as JSON"
+          >
+            Save Location
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLoadButtonClick}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg shadow-sm transition-colors cursor-pointer"
+            title="Load boundary points from JSON"
+          >
+            Load Location
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleLoadLocationFile}
+            className="hidden"
+          />
+        </div>
       </div>
 
       {error && (
@@ -54,64 +150,8 @@ export const TerrainAnalyzer: React.FC = () => {
           {error}
         </div>
       )}
-
-      {terrainPoints.length > 0 && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-3">Calibrated Vertex Elevations</h3>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-3 font-semibold text-slate-700">Vertex</th>
-                    <th className="p-3 font-semibold text-slate-700">Latitude</th>
-                    <th className="p-3 font-semibold text-slate-700">Longitude</th>
-                    <th className="p-3 font-semibold text-slate-700">Elevation (m)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {terrainPoints.map((pt, idx) => (
-                    <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="p-3 font-medium text-slate-900">P{idx + 1}</td>
-                      <td className="p-3 text-slate-600">{pt.lat.toFixed(5)}</td>
-                      <td className="p-3 text-slate-600">{pt.lng.toFixed(5)}</td>
-                      <td className="p-3 font-semibold text-emerald-600">{pt.elevation.toFixed(2)} m</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-3">Segment Slope Analysis</h3>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-3 font-semibold text-slate-700">Segment</th>
-                    <th className="p-3 font-semibold text-slate-700">Horizontal Distance</th>
-                    <th className="p-3 font-semibold text-slate-700">Vertical Rise</th>
-                    <th className="p-3 font-semibold text-slate-700">Slope (%)</th>
-                    <th className="p-3 font-semibold text-slate-700">Slope (°)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {slopeResults.map((seg, idx) => (
-                    <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="p-3 font-medium text-slate-900">{seg.segment}</td>
-                      <td className="p-3 text-slate-600">{seg.horizontalDistanceMeters} m</td>
-                      <td className="p-3 text-slate-600">{seg.verticalRiseMeters} m</td>
-                      <td className="p-3 font-bold text-emerald-700">{seg.slopePercent}%</td>
-                      <td className="p-3 text-slate-600">{seg.slopeDegrees}°</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default TerrainAnalyzer;

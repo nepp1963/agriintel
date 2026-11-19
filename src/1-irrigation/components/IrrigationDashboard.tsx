@@ -30,16 +30,22 @@ const ALL_PHILIPPINE_CROPS = [
 
 // Local Agronomic Soil Types & DA-BSWM Series in the Philippines
 const ALL_PHILIPPINE_SOIL_TYPES = [
-  'Angeles Fine Sand (Coarse / Well-Drained Volcanic Sand)',
-  'Lipa Clay Loam (Rich Volcanic Loam)',
-  'Guimbalaon Clay (Deep Red Highland Volcanic Clay)',
   'San Manuel Silt Loam (Fertile Alluvial Floodplain Silt)',
+  'Ilagan Loam (Deep Alluvial & Upland Valley Loam)',
+  'Angeles Fine Sand (Coarse / Well-Drained Lahar & Alluvial Sand)',
+  'Lipa Clay Loam (Rich Volcanic Tuff Loam)',
+  'San Manuel Loam (Fertile Alluvial & Coastal Valley Loam)',
+  'Legazpi Fine Sandy Loam (Volcanic Ash / Pyroclastic Sandy Loam)',
+  'Santa Rita Clay (Heavy Lowland Alluvial Clay)',
+  'Faraon Clay (Shallow Calcareous / Limestone Clay)',
+  'Tacloban Clay (Deep Weathered Alluvial & Coastal Clay)',
+  'Adtuyon Clay (Deep Red Volcanic Upland Clay)',
+  'Kidapawan Clay Loam (Deep Volcanic & Alluvial Clay Loam)',
+  'Tupi Fine Sandy Loam (Volcanic / Pyroclastic Sandy Loam)',
+  'Butuan Loam (Alluvial Basin Loam)',
+  'Guadalupe Clay (Heavy Montmorillonitic Swelling Clay)',
+  'Baguio Clay Loam (Highland Residual Clay Loam)',
   'San Rafael Heavy Clay (Swelling Black Paddy / Heavy Clay)',
-  'Baguio Sandy Clay Loam (Highland Mountain Loam)',
-  'Iloilo Clay Loam (Heavy Lowland Alluvial Clay)',
-  'Davao Clay (Deep Upland Fertile Clay)',
-  'Cotabato Silt Loam (Agro-Industrial River Valley Loam)',
-  'Tarlac Clay (Flat Lowland Paddy Clay)',
   'Hydromorphic Peat / Mangrove Organic Soil (Coastal Marsh)'
 ];
 
@@ -51,6 +57,7 @@ const REGIONAL_INTELLIGENCE: Record<string, {
   climateType: string;
   typhoonFrequency: string;
   predominantSoil: string;
+  otherSoilTypes: string[];
   extremeEvents: string[];
   cropSuitability: { crop: string; rating: string; advisory: string }[];
 }> = {
@@ -60,20 +67,22 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 120.3308,
     climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
     typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
-    predominantSoil: 'Angeles Fine Sand (Coarse / Well-Drained Volcanic Sand)',
+    predominantSoil: 'San Manuel Silt Loam (Fertile Alluvial Floodplain Silt)',
+    otherSoilTypes: ['Bantog Clay', 'Umingan Loam', 'Pangasinan Fine Sand', 'Bauang Clay'],
     extremeEvents: ['Prolonged summer drought', 'Monsoon flash floods', 'Coastal storm surges'],
     cropSuitability: [
       { crop: 'Lowland Rice & Tobacco', rating: 'S1 - Highly Suitable', advisory: 'Thrives during dry season with regulated irrigation.' },
-      { crop: 'Upland Rice & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Excellent performance in well-drained sandy loam terrain.' }
+      { crop: 'Upland Rice & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Excellent performance in well-drained alluvial loam terrain.' }
     ]
   },
   'Region II (Cagayan Valley)': {
     name: 'Region II (Cagayan Valley)',
     lat: 17.6132,
     lng: 121.7270,
-    climateType: 'Type III (Seasons not very pronounced, relatively dry)',
+    climateType: 'Type III (Seasons not very pronounced; relatively dry Nov–Apr)',
     typhoonFrequency: 'Very High (Direct entry corridor for Super Typhoons)',
-    predominantSoil: 'San Manuel Silt Loam (Fertile Alluvial Floodplain Silt)',
+    predominantSoil: 'Ilagan Loam (Deep Alluvial & Upland Valley Loam)',
+    otherSoilTypes: ['Quingua Silt Loam', 'Bantog Clay', 'San Manuel Loam', 'Cauayan Clay'],
     extremeEvents: ['Catastrophic Cagayan River Basin flooding', 'Severe typhoons & sustained gales', 'Agricultural drought'],
     cropSuitability: [
       { crop: 'Yellow Corn & Lowland Rice', rating: 'S1 - Highly Suitable', advisory: 'Major corn granary; monitor fourth-quarter typhoon risks.' },
@@ -84,22 +93,24 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Region III (Central Luzon)',
     lat: 15.0286,
     lng: 120.6896,
-    climateType: 'Type I (Pronounced dry and wet seasons)',
+    climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
     typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
-    predominantSoil: 'Tarlac Clay (Flat Lowland Paddy Clay)',
+    predominantSoil: 'Angeles Fine Sand (Coarse / Well-Drained Lahar & Alluvial Sand)',
+    otherSoilTypes: ['Quingua Silt Loam', 'Bantog Clay', 'Candaba Clay', 'Luisita Fine Sandy Loam', 'Tarlac Clay'],
     extremeEvents: ['Pampanga River Basin agricultural inundation', 'Severe summer heat & irrigation water deficits', 'Typhoon wind damage'],
     cropSuitability: [
-      { crop: 'Lowland Paddy Rice & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Rice and sugar granary; double-cropping highly viable in clay paddies.' },
-      { crop: 'Bulb Onion, Garlic & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Ideal in well-drained sandy loam pockets of Nueva Ecija/Tarlac.' }
+      { crop: 'Lowland Paddy Rice & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Rice and sugar granary; double-cropping viable in clay/silt paddies.' },
+      { crop: 'Bulb Onion, Garlic & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Ideal in well-drained sandy loam pockets of Nueva Ecija/Tarlac/Pampanga.' }
     ]
   },
   'Region IV-A (CALABARZON)': {
     name: 'CALABARZON (Region IV-A)',
     lat: 14.45896,
     lng: 120.93851,
-    climateType: 'Type I (Two pronounced seasons)',
+    climateType: 'Type I & Type III (Pronounced dry/wet on west; dry Nov–Apr elsewhere)',
     typhoonFrequency: 'Moderate - High (3 to 4 Cyclones / year)',
-    predominantSoil: 'Lipa Clay Loam (Rich Volcanic Loam)',
+    predominantSoil: 'Lipa Clay Loam (Rich Volcanic Tuff Loam)',
+    otherSoilTypes: ['Guadalupe Clay', 'Taal Sandy Loam', 'Antipolo Clay', 'Luisiana Clay', 'Ibaan Loam'],
     extremeEvents: ['Monsoon Surge Flash Floods (Habagat)', 'Volcanic ashfall & lahar risks (Taal)', 'Prolonged dry spells (El Niño)'],
     cropSuitability: [
       { crop: 'Lowland Paddy Rice & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Requires drainage management during peak wet season.' },
@@ -110,9 +121,10 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'MIMAROPA (Region IV-B)',
     lat: 12.7503,
     lng: 121.1812,
-    climateType: 'Type I & III (Short dry season)',
+    climateType: 'Type I & III (Short dry season; wet during rest of the year)',
     typhoonFrequency: 'Moderate (3 Cyclones / year)',
-    predominantSoil: 'San Manuel Silt Loam (Fertile Alluvial Floodplain Silt)',
+    predominantSoil: 'San Manuel Loam (Fertile Alluvial & Coastal Valley Loam)',
+    otherSoilTypes: ['Aborlan Loam', 'Tagburos Clay', 'Boac Clay Loam', 'Brooke’s Clay Loam'],
     extremeEvents: ['Coastal storm surges', 'Flash floods in island river basins', 'Seasonal dry-season water stress'],
     cropSuitability: [
       { crop: 'Upland Rice, Coconut & Cassava', rating: 'S1 - Highly Suitable', advisory: 'Thrives across Palawan and Mindoro alluvial valleys.' },
@@ -123,10 +135,11 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Bicol Region (Region V)',
     lat: 13.6218,
     lng: 123.1948,
-    climateType: 'Type II & IV (No dry season, pronounced max rainfall)',
+    climateType: 'Type II & IV (No dry season; pronounced max rainfall Nov–Jan)',
     typhoonFrequency: 'Very High (Direct Typhoon Belt: 5+ Cyclones / year)',
-    predominantSoil: 'Lipa Clay Loam (Rich Volcanic Loam)',
-    extremeEvents: ['Super Typhoon wind damage & storm surges', 'Volcanic lahar flows (Mayon)', 'Continuous soil saturation'],
+    predominantSoil: 'Legazpi Fine Sandy Loam (Volcanic Ash / Pyroclastic Sandy Loam)',
+    otherSoilTypes: ['Pili Clay Loam', 'Tigaon Clay', 'Sorsogon Clay Loam', 'Ligao Loam', 'Irosin Silt Loam'],
+    extremeEvents: ['Super Typhoon wind damage & storm surges', 'Volcanic lahar flows (Mayon/Bulusan)', 'Continuous soil saturation'],
     cropSuitability: [
       { crop: 'Coconut & Abaca', rating: 'S1 - Highly Suitable', advisory: 'Resilient perennial crops suited for continuous rainfall.' },
       { crop: 'Lowland Rice & Sweet Potato', rating: 'S2 - Moderately Suitable', advisory: 'High crop loss risk during late fourth-quarter typhoons.' }
@@ -138,10 +151,11 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lng: 122.5621,
     climateType: 'Type I & III (Short dry season 1–3 months)',
     typhoonFrequency: 'Moderate (2 to 3 Cyclones / year)',
-    predominantSoil: 'Guimbalaon Clay (Deep Red Highland Volcanic Clay)',
-    extremeEvents: ['Agricultural drought (El Niño)', 'Riverine flooding (Jaro/Jalaur basins)', 'Salinity intrusion'],
+    predominantSoil: 'Santa Rita Clay (Heavy Lowland Alluvial Clay)',
+    otherSoilTypes: ['Guimbalaon Clay', 'Silay Fine Sandy Loam', 'Sara Sandy Loam', 'Iloilo Clay Loam'],
+    extremeEvents: ['Agricultural drought (El Niño)', 'Riverine flooding (Jaro/Jalaur/Panay basins)', 'Salinity intrusion'],
     cropSuitability: [
-      { crop: 'Sugarcane & Yellow Corn', rating: 'S1 - Highly Suitable', advisory: 'Premier national sugarcane belt; highly productive in volcanic clay.' },
+      { crop: 'Sugarcane & Yellow Corn', rating: 'S1 - Highly Suitable', advisory: 'Premier national sugarcane belt; productive in alluvial and volcanic soils.' },
       { crop: 'Upland Rice & Cassava', rating: 'S2 - Moderately Suitable', advisory: 'Vulnerable to onset delays of the wet monsoon.' }
     ]
   },
@@ -149,12 +163,13 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Region VII (Central Visayas)',
     lat: 10.3157,
     lng: 123.8854,
-    climateType: 'Type III (Seasons not very pronounced)',
+    climateType: 'Type III & IV (Seasons not very pronounced; short dry season)',
     typhoonFrequency: 'Low - Moderate (1 to 2 Cyclones / year)',
-    predominantSoil: 'Iloilo Clay Loam (Heavy Lowland Alluvial Clay)',
+    predominantSoil: 'Faraon Clay (Shallow Calcareous / Limestone Clay)',
+    otherSoilTypes: ['Bolinao Clay', 'Lugo Clay', 'Mandaue Clay Loam', 'Medellin Clay'],
     extremeEvents: ['Severe El Niño water scarcity', 'Karst aquifer drought vulnerability', 'Localized coastal flash floods'],
     cropSuitability: [
-      { crop: 'White Corn, Cassava & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Well-adapted to rolling limestone-derived clay loam soils.' },
+      { crop: 'White Corn, Cassava & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Well-adapted to rolling limestone-derived calcareous clay soils.' },
       { crop: 'Lowland Rice & Tomato', rating: 'S3 - Marginally Suitable', advisory: 'Limited by seasonal water availability.' }
     ]
   },
@@ -162,9 +177,10 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Eastern Visayas (Region VIII)',
     lat: 11.2434,
     lng: 125.0047,
-    climateType: 'Type II & IV (No dry season, very high rainfall)',
-    typhoonFrequency: 'Very High (Primary landfall zone for major typhoons)',
-    predominantSoil: 'San Rafael Heavy Clay (Swelling Black Paddy / Heavy Clay)',
+    climateType: 'Type II (No dry season; very pronounced maximum rain Nov–Jan)',
+    typhoonFrequency: 'Very High (Direct Typhoon & Storm Surge Corridor)',
+    predominantSoil: 'Tacloban Clay (Deep Weathered Alluvial & Coastal Clay)',
+    otherSoilTypes: ['Palo Clay Loam', 'San Manuel Silt Loam', 'Catbalogan Clay Loam', 'Maasin Clay'],
     extremeEvents: ['Catastrophic storm surges (Haiyan-type)', 'Continuous torrential rainfall & landslides', 'Severe river siltation'],
     cropSuitability: [
       { crop: 'Coconut, Abaca & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Primary livelihood crops resilient to high soil moisture.' },
@@ -175,12 +191,13 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Zamboanga Peninsula (Region IX)',
     lat: 7.9042,
     lng: 123.2505,
-    climateType: 'Type IV (Evenly distributed rainfall throughout year)',
-    typhoonFrequency: 'Low (Outside main typhoon belt)',
-    predominantSoil: 'Davao Clay (Deep Upland Fertile Clay)',
+    climateType: 'Type III & IV (Relatively dry Nov–Apr or evenly distributed rain)',
+    typhoonFrequency: 'Low (Less than 1 Cyclone / year; localized convective/monsoon storms)',
+    predominantSoil: 'Adtuyon Clay (Deep Red Volcanic Upland Clay)',
+    otherSoilTypes: ['Paete Clay Loam', 'Siari Loam', 'Pasonanca Loam', 'Dohinob Clay Loam'],
     extremeEvents: ['Localized flash floods', 'Prolonged dry spells during regional drought', 'Pest and disease outbreaks in rubber'],
     cropSuitability: [
-      { crop: 'Rubber, Coconut & Cassava', rating: 'S1 - Highly Suitable', advisory: 'Thrives in stable equatorial climate and deep clay soils.' },
+      { crop: 'Rubber, Coconut & Cassava', rating: 'S1 - Highly Suitable', advisory: 'Thrives in stable equatorial climate and deep volcanic clay soils.' },
       { crop: 'Upland Rice & Corn', rating: 'S2 - Moderately Suitable', advisory: 'Viable in irrigated river valley basins.' }
     ]
   },
@@ -188,9 +205,10 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Northern Mindanao (Region X)',
     lat: 8.2280,
     lng: 124.2452,
-    climateType: 'Type III & IV (No pronounced dry season)',
-    typhoonFrequency: 'Low (Infrequent direct strikes)',
-    predominantSoil: 'Guimbalaon Clay (Deep Red Highland Volcanic Clay)',
+    climateType: 'Type III & IV (Evenly distributed rainfall or short dry season)',
+    typhoonFrequency: 'Low - Moderate (1 to 2 Cyclones / year)',
+    predominantSoil: 'Adtuyon Clay (Deep Volcanic Plateau Clay)',
+    otherSoilTypes: ['Kidapawan Clay Loam', 'Jasaan Clay', 'Macolod Clay Loam', 'Matina Clay Loam'],
     extremeEvents: ['Upland flash floods (Sendong-type)', 'Prolonged dry spells', 'Landslides in mountainous agricultural zones'],
     cropSuitability: [
       { crop: 'Pineapple, Banana, Potato & Corn', rating: 'S1 - Highly Suitable', advisory: 'Major commercial agro-industrial zone (Bukidnon plateau).' },
@@ -201,12 +219,13 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Davao Region (Region XI)',
     lat: 7.1907,
     lng: 125.4553,
-    climateType: 'Type IV (Rainfall evenly distributed)',
-    typhoonFrequency: 'Very Low (Generally typhoon-free)',
-    predominantSoil: 'Davao Clay (Deep Upland Fertile Clay)',
+    climateType: 'Type IV (Rainfall more or less evenly distributed throughout the year)',
+    typhoonFrequency: 'Low (Rare direct typhoon landfall; heavy rain events)',
+    predominantSoil: 'Kidapawan Clay Loam (Deep Volcanic & Alluvial Clay Loam)',
+    otherSoilTypes: ['San Manuel Silty Clay Loam', 'Tugbok Clay', 'Cabantian Clay', 'Matina Clay Loam'],
     extremeEvents: ['Strong convective thunderstorms', 'El Niño agricultural moisture stress', 'Seismic activity & landslides'],
     cropSuitability: [
-      { crop: 'Cavendish Banana, Cacao & Coffee', rating: 'S1 - Highly Suitable', advisory: 'Prime export fruit production zone on rich fertile clay.' },
+      { crop: 'Cavendish Banana, Cacao & Coffee', rating: 'S1 - Highly Suitable', advisory: 'Prime export fruit production zone on rich volcanic and alluvial clay loam.' },
       { crop: 'Coconut, Sugarcane & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Excellent climatic and soil fit.' }
     ]
   },
@@ -214,25 +233,27 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'SOCCSKSARGEN (Region XII)',
     lat: 6.2704,
     lng: 124.6053,
-    climateType: 'Type IV (Rainfall evenly distributed)',
-    typhoonFrequency: 'Very Low (Typhoon-free zone)',
-    predominantSoil: 'Cotabato Silt Loam (Agro-Industrial River Valley Loam)',
-    extremeEvents: ['Agricultural drought / El Niño grain loss', 'River basin flooding (Cotabato marshlands)', 'Convective flash floods'],
+    climateType: 'Type III & IV (No pronounced wet/dry maximum; moderate seasonal variation)',
+    typhoonFrequency: 'Low (Rare direct cyclones; convective & monsoon rain hazards)',
+    predominantSoil: 'Tupi Fine Sandy Loam (Volcanic / Pyroclastic Sandy Loam)',
+    otherSoilTypes: ['Matulas Fine Sandy Loam', 'Banga Sandy Loam', 'Kabacan Clay Loam', 'Makar Clay Loam'],
+    extremeEvents: ['Agricultural drought / El Niño grain loss', 'River basin flooding (Cotabato/Allah basins)', 'Convective flash floods'],
     cropSuitability: [
       { crop: 'Yellow Corn, Sugarcane & Lowland Rice', rating: 'S1 - Highly Suitable', advisory: 'Highly productive agricultural plains (Cotabato/Koronadal).' },
-      { crop: 'Coffee, Cacao & Cassava', rating: 'S1 - Highly Suitable', advisory: 'Thrives in upland volcanic loam soils.' }
+      { crop: 'Coffee, Cacao & Cassava', rating: 'S1 - Highly Suitable', advisory: 'Thrives in upland volcanic sandy loam and clay loam soils.' }
     ]
   },
   'Region XIII (Caraga)': {
     name: 'Caraga (Region XIII)',
     lat: 8.9504,
     lng: 125.5312,
-    climateType: 'Type II (No dry season, maximum rainfall in winter)',
-    typhoonFrequency: 'Moderate - High (Eastern seaboard exposure)',
-    predominantSoil: 'San Manuel Silt Loam (Fertile Alluvial Floodplain Silt)',
+    climateType: 'Type II (No dry season; pronounced wet months Nov–Jan)',
+    typhoonFrequency: 'Moderate - High (2 to 3+ Cyclones / year)',
+    predominantSoil: 'Butuan Loam (Alluvial Basin Loam)',
+    otherSoilTypes: ['San Manuel Clay Loam', 'Camansa Clay Loam', 'Surigao Clay', 'Jabonga Clay'],
     extremeEvents: ['Severe riverine flooding (Agusan River Basin)', 'Continuous heavy winter monsoon rains', 'Coastal storm surges'],
     cropSuitability: [
-      { crop: 'Abaca, Coconut & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Ideal forestry and agro-forestry climate in deep silt loam.' },
+      { crop: 'Abaca, Coconut & Rubber', rating: 'S1 - Highly Suitable', advisory: 'Ideal forestry and agro-forestry climate in alluvial basin loam.' },
       { crop: 'Upland Rice & Cassava', rating: 'S2 - Moderately Suitable', advisory: 'Prone to seasonal inundation in Agusan basin.' }
     ]
   },
@@ -240,13 +261,14 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'Cordillera Administrative Region (CAR)',
     lat: 16.4023,
     lng: 120.5960,
-    climateType: 'Type I & III (Pronounced dry/wet with cool high-altitude climate)',
-    typhoonFrequency: 'High (Mountainous windward exposure)',
-    predominantSoil: 'Baguio Sandy Clay Loam (Highland Mountain Loam)',
+    climateType: 'Type I & III (Distinct wet/dry on western slopes; milder shift elsewhere)',
+    typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    predominantSoil: 'Baguio Clay Loam (Highland Residual Clay Loam)',
+    otherSoilTypes: ['Atok Loam', 'Bakakeng Clay', 'Buyagan Clay Loam', 'Ambassador Silt Loam'],
     extremeEvents: ['Catastrophic mountain landslides & road slips', 'Severe typhoon wind & rain battering', 'Sub-zero frost events in high peaks'],
     cropSuitability: [
       { crop: 'Highland Potato, Cabbage & Tomato', rating: 'S1 - Highly Suitable', advisory: 'Requires terraced farming and soil erosion control.' },
-      { crop: 'Upland Rice (Heirloom Kalinga/Ifugao)', rating: 'S1 - Highly Suitable', advisory: 'High-value highland cultural specialty crops in organic mountain loam.' }
+      { crop: 'Upland Rice (Heirloom Kalinga/Ifugao)', rating: 'S1 - Highly Suitable', advisory: 'High-value highland cultural specialty crops in highland clay loam.' }
     ]
   },
   'NCR (National Capital Region)': {
@@ -254,8 +276,9 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     lat: 14.5995,
     lng: 120.9842,
     climateType: 'Type I (Pronounced dry Nov–Apr, wet May–Oct)',
-    typhoonFrequency: 'Moderate - High (Direct urban exposure)',
-    predominantSoil: 'San Rafael Heavy Clay (Swelling Black Paddy / Heavy Clay)',
+    typhoonFrequency: 'High (4 to 5 Tropical Cyclones / year)',
+    predominantSoil: 'Guadalupe Clay (Heavy Montmorillonitic Swelling Clay)',
+    otherSoilTypes: ['Marikina Clay Loam', 'Novaliches Clay Loam', 'Obando Fine Sandy Loam', 'Quingua Silt Loam'],
     extremeEvents: ['Urban tidal & monsoon flooding (Marikina/Pasig basins)', 'Severe heat island effect', 'Typhoon windstorm disruptions'],
     cropSuitability: [
       { crop: 'Urban Agriculture & Hydroponics (Tomato/Lettuce)', rating: 'S1 - Highly Suitable', advisory: 'Controlled environment agriculture and rooftop farming.' },
@@ -266,13 +289,14 @@ const REGIONAL_INTELLIGENCE: Record<string, {
     name: 'BARMM (Bangsamoro)',
     lat: 7.2230,
     lng: 124.2431,
-    climateType: 'Type IV (Rainfall evenly distributed)',
-    typhoonFrequency: 'Very Low (Typhoon-free)',
-    predominantSoil: 'Hydromorphic Peat / Mangrove Organic Soil (Coastal Marsh)',
-    extremeEvents: ['Lingering Liguasan Marsh seasonal flooding', 'Prolonged dry spells', 'River siltation'],
+    climateType: 'Type III & IV (Moderate seasonal variation; evenly distributed rain in parts)',
+    typhoonFrequency: 'Low (Occasional rain bands & convective storms)',
+    predominantSoil: 'Kidapawan Clay Loam (Volcanic & Alluvial Basin Clay Loam)',
+    otherSoilTypes: ['Tamontaka Clay', 'Parang Clay Loam', 'Kudarangan Clay', 'Malabang Sandy Loam'],
+    extremeEvents: ['Lingering Liguasan Marsh & Rio Grande de Mindanao flooding', 'Prolonged dry spells', 'River siltation & coastal salinity'],
     cropSuitability: [
       { crop: 'White Corn, Cassava & Sugarcane', rating: 'S1 - Highly Suitable', advisory: 'Extensive alluvial agricultural potential in well-drained zones.' },
-      { crop: 'Sweet Potato & Inland Aquaculture', rating: 'S1 - Highly Suitable', advisory: 'Unmatched potential across marshland and coastal organic peat zones.' }
+      { crop: 'Sweet Potato & Inland Aquaculture', rating: 'S1 - Highly Suitable', advisory: 'Unmatched potential across marshland and coastal zones.' }
     ]
   }
 };
@@ -321,8 +345,10 @@ export function IrrigationDashboard() {
     }
   };
 
-  const initialReg = (location && location.lat >= 14.4 && location.lat <= 14.7 && location.lng >= 120.9 && location.lng <= 121.1) ? "National Capital Region (NCR)" : "Region IV-A (CALABARZON)";
-    const [selectedRegionKey, setSelectedRegionKey] = useState<string>(initialReg);
+  const initialReg = (location && location.lat >= 14.4 && location.lat <= 14.7 && location.lng >= 120.9 && location.lng <= 121.1)
+    ? 'NCR (National Capital Region)'
+    : 'Region IV-A (CALABARZON)';
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>(initialReg);
   const activeRegionData = REGIONAL_INTELLIGENCE[selectedRegionKey] || REGIONAL_INTELLIGENCE['Region IV-A (CALABARZON)'];
 
   const [regionPreset, setRegionPreset] = useState(initialReg);
@@ -414,9 +440,9 @@ export function IrrigationDashboard() {
   const frictionLossNum = Number(((numPipeLength * 0.02) / (numPipeDiameter / 1000)).toFixed(1));
   const minorLossNum = Number(((numStaticLift + frictionLossNum) * (numMinorLossPct / 100)).toFixed(1));
   const totalTDHNum = Math.max(0.1, Number((numStaticLift + frictionLossNum + minorLossNum + numOpPressure).toFixed(1)));
-  
+
   const dailyYieldVal = (numFlowRate * 3.6 * numPeakSunHours * 1.3).toFixed(1);
-  
+
   const hydraulicPowerKw = (9.81 * numFlowRate * totalTDHNum) / 1000;
   const pumpEfficiency = 0.45;
   const requiredElectricalKw = hydraulicPowerKw / pumpEfficiency;
@@ -440,9 +466,9 @@ export function IrrigationDashboard() {
   const c3 = c2 + pMinor;
 
   const tdhConicGradient = `conic-gradient(
-    #64748b 0% ${c1}%, 
-    #f59e0b ${c1}% ${c2}%, 
-    #eab308 ${c2}% ${c3}%, 
+    #64748b 0% ${c1}%,
+    #f59e0b ${c1}% ${c2}%,
+    #eab308 ${c2}% ${c3}%,
     #06b6d4 ${c3}% 100%
   )`;
 
@@ -467,15 +493,15 @@ export function IrrigationDashboard() {
   const evaluateSuitability = () => {
     const slopeVal = Number(soilSlopePct) || 0;
     if (slopeVal > 18) {
-      return { 
-        class: 'N2 - Not Suitable / High Erosion Hazard', 
-        note: `⚠️ Severe slope limitation (${slopeVal}%). Surface flooding, paddy farming, and basin irrigation are strictly non-viable due to severe soil erosion and runoff hazards. Terracing, drip, or micro-sprinkler systems are mandatory.` 
+      return {
+        class: 'N2 - Not Suitable / High Erosion Hazard',
+        note: `⚠️ Severe slope limitation (${slopeVal}%). Surface flooding, paddy farming, and basin irrigation are strictly non-viable due to severe soil erosion and runoff hazards. Terracing, drip, or micro-sprinkler systems are mandatory.`
       };
     }
     if (slopeVal > 8) {
-      return { 
-        class: 'S3 - Marginally Suitable', 
-        note: `⚠️ Moderate slope (${slopeVal}%). Surface flooding is restricted; contour farming, bench terracing, or sprinkler/drip systems are recommended.` 
+      return {
+        class: 'S3 - Marginally Suitable',
+        note: `⚠️ Moderate slope (${slopeVal}%). Surface flooding is restricted; contour farming, bench terracing, or sprinkler/drip systems are recommended.`
       };
     }
     if (soilDepth.includes('Shallow')) {
@@ -518,7 +544,7 @@ export function IrrigationDashboard() {
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} p-6 transition-colors`}>
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Top Header */}
         <div className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} gap-4`}>
           <div className="flex items-center gap-4">
@@ -527,14 +553,14 @@ export function IrrigationDashboard() {
             </span>
             <div className="flex items-center gap-2 text-xs">
               <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Theme:</span>
-              <button 
-                onClick={() => setTheme('dark')} 
+              <button
+                onClick={() => setTheme('dark')}
                 className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'dark' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-200 text-slate-700'}`}
               >
                 🌙 Dark
               </button>
-              <button 
-                onClick={() => setTheme('light')} 
+              <button
+                onClick={() => setTheme('light')}
                 className={`px-2.5 py-1 rounded-md flex items-center gap-1 ${theme === 'light' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-200 text-slate-700'}`}
               >
                 ☀️ Light
@@ -570,8 +596,8 @@ export function IrrigationDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id 
-                  ? 'bg-emerald-600 text-white shadow-sm font-bold' 
+                activeTab === tab.id
+                  ? 'bg-emerald-600 text-white shadow-sm font-bold'
                   : (theme === 'dark' ? 'text-slate-300 hover:bg-slate-800/50' : 'text-slate-700 hover:bg-slate-100')
               }`}
             >
@@ -584,7 +610,7 @@ export function IrrigationDashboard() {
         {activeTab === 'spis' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              
+
               {/* Card 1: Regional Climate & Crops */}
               <div className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'} space-y-3.5`}>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -592,8 +618,8 @@ export function IrrigationDashboard() {
                 </h3>
                 <div>
                   <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>REGION PRESET (ALL PHILIPPINE REGIONS)</label>
-                  <select 
-                    value={regionPreset} 
+                  <select
+                    value={regionPreset}
                     onChange={(e) => {
                       const newReg = e.target.value;
                       setRegionPreset(newReg);
@@ -602,7 +628,7 @@ export function IrrigationDashboard() {
                       if (reg) {
                         updateFromCoords(reg.lat, reg.lng);
                       }
-                    }} 
+                    }}
                     className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                   >
                     {Object.keys(REGIONAL_INTELLIGENCE).map((regKey) => (
@@ -613,9 +639,9 @@ export function IrrigationDashboard() {
 
                 <div>
                   <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>LOCAL SOIL TYPE & DA-BSWM SERIES</label>
-                  <select 
-                    value={selectedSoilType} 
-                    onChange={(e) => setSelectedSoilType(e.target.value)} 
+                  <select
+                    value={selectedSoilType}
+                    onChange={(e) => setSelectedSoilType(e.target.value)}
                     className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                   >
                     {ALL_PHILIPPINE_SOIL_TYPES.map((soil) => (
@@ -626,9 +652,9 @@ export function IrrigationDashboard() {
 
                 <div>
                   <label className={`text-[10px] block mb-1 uppercase font-semibold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>TARGET CROP PROFILE</label>
-                  <select 
-                    value={cropProfile} 
-                    onChange={(e) => setCropProfile(e.target.value)} 
+                  <select
+                    value={cropProfile}
+                    onChange={(e) => setCropProfile(e.target.value)}
                     className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                   >
                     {ALL_PHILIPPINE_CROPS.map((crop) => (
@@ -785,12 +811,12 @@ export function IrrigationDashboard() {
 
             {/* Bottom Analytics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
+
               {/* TDH Breakdown Pie Graph Card */}
               <div className={`border rounded-xl p-6 flex flex-col justify-between min-h-[500px] ${theme === 'dark' ? 'bg-slate-900/60 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'}`}>
                 <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">📈 Total Dynamic Head (TDH) Breakdown (Pie Graph)</h4>
                 <div className="flex flex-col sm:flex-row items-center justify-around my-auto gap-8 py-8">
-                  <div 
+                  <div
                     className={`w-64 h-64 rounded-full border-4 shadow-inner relative flex items-center justify-center shrink-0 transition-all ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}
                     style={{ background: tdhConicGradient }}
                   >
@@ -857,9 +883,9 @@ export function IrrigationDashboard() {
               <div>
                 <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">MAP GIS LAYER & TOPOGRAPHIC ELEVATION / SLOPE SAMPLER</h3>
                 <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Active Lat: <span className="text-emerald-500 font-mono">{location.lat.toFixed(5)}° N</span> | 
-                  Lng: <span className="text-emerald-500 font-mono">{location.lng.toFixed(5)}° E</span> | 
-                  Elevation: <span className="text-amber-500 font-mono">{extractedElevation} m</span> | 
+                  Active Lat: <span className="text-emerald-500 font-mono">{location.lat.toFixed(5)}° N</span> |
+                  Lng: <span className="text-emerald-500 font-mono">{location.lng.toFixed(5)}° E</span> |
+                  Elevation: <span className="text-amber-500 font-mono">{extractedElevation} m</span> |
                   Extracted Slope: <span className={`font-mono font-bold ${extractedSlopePct > 18 ? 'text-red-500' : 'text-emerald-500'}`}>{extractedSlopePct}%</span>
                 </p>
               </div>
@@ -944,6 +970,9 @@ export function IrrigationDashboard() {
                   <div className={`border-t pt-2 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}>
                     <span className={`block text-[10px] uppercase ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Predominant Local Soil Type</span>
                     <strong className="text-emerald-500 text-sm">{activeRegionData.predominantSoil}</strong>
+                    <span className={`block text-[11px] mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Other local soil types: {activeRegionData.otherSoilTypes.join(', ')}
+                    </span>
                   </div>
                   <div className={`border-t pt-2 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-300'}`}>
                     <span className={`block text-[10px] uppercase ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Annual Typhoon Exposure</span>
@@ -986,7 +1015,7 @@ export function IrrigationDashboard() {
                 <SyncedMapController center={[location.lat, location.lng]} zoom={sharedZoom} />
                 <MapEventsHandler onZoomChange={setSharedZoom} onClickChange={(lat, lng) => handleMapLocationSelect(lat, lng)} />
                 <TileLayer key={mapViewMode} attribution={activeAttribution} url={activeTileUrl} />
-                
+
                 <Polygon
                   positions={PAR_POLYGON_COORDS}
                   pathOptions={{ color: '#f59e0b', weight: 2.5, dashArray: '6, 6', fillColor: '#f59e0b', fillOpacity: 0.1 }}
@@ -1021,7 +1050,12 @@ export function IrrigationDashboard() {
                     {Object.values(REGIONAL_INTELLIGENCE).map((reg, idx) => (
                       <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-900/40' : 'hover:bg-slate-50'}>
                         <td className="p-3 font-bold text-emerald-500">{reg.name}</td>
-                        <td className={`p-3 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{reg.predominantSoil}</td>
+                        <td className={`p-3 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
+                          <div>{reg.predominantSoil}</div>
+                          <div className={`text-[11px] mt-0.5 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Other: {reg.otherSoilTypes.join(', ')}
+                          </div>
+                        </td>
                         <td className="p-3">{reg.climateType}</td>
                         <td className="p-3 font-medium text-amber-500">{reg.typhoonFrequency}</td>
                         <td className="p-3">{reg.extremeEvents.join('; ')}</td>
@@ -1158,9 +1192,9 @@ export function IrrigationDashboard() {
                 <div className="space-y-3 text-xs">
                   <div>
                     <label className={`text-[11px] block mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Target Land Use / Crop</label>
-                    <select 
-                      value={landUseTarget} 
-                      onChange={(e) => setLandUseTarget(e.target.value)} 
+                    <select
+                      value={landUseTarget}
+                      onChange={(e) => setLandUseTarget(e.target.value)}
                       className={`w-full text-xs rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                     >
                       {ALL_PHILIPPINE_CROPS.map((crop) => (
@@ -1170,9 +1204,9 @@ export function IrrigationDashboard() {
                   </div>
                   <div>
                     <label className={`text-[11px] block mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Local Soil Series / Type Selection</label>
-                    <select 
-                      value={selectedSoilType} 
-                      onChange={(e) => setSelectedSoilType(e.target.value)} 
+                    <select
+                      value={selectedSoilType}
+                      onChange={(e) => setSelectedSoilType(e.target.value)}
                       className={`w-full text-xs rounded-lg p-2 font-medium border ${theme === 'dark' ? 'bg-slate-950 border-emerald-700/60 text-emerald-300' : 'bg-slate-50 border-emerald-600 text-emerald-700'}`}
                     >
                       {ALL_PHILIPPINE_SOIL_TYPES.map((soil) => (
