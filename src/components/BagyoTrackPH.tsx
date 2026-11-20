@@ -3,6 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   Compass,
   Database,
   ExternalLink,
@@ -23,6 +25,7 @@ import {
  * BagyoTrack PH — Standalone Typhoon Path & Agronomic Impact Module for AgriIntelPH
  * - Zero fake/default typhoon data (prevents misleading advisories or liability)
  * - No-API-Key Map (OpenStreetMap) & Satellite (Esri World Imagery) base layers
+ * - Responsive Desktop + Mobile layout (prevents card/badge overlap on narrow screens)
  * - Data Attribution: DOST-PAGASA | JMA (RSMC Tokyo) | NOAA / JTWC | ECMWF / Open-Meteo
  */
 
@@ -100,10 +103,6 @@ function defaultAgronomicAdvisory(signal: number): string {
   return 'Suspend foliar spraying and fertilizer broadcasting; inspect field bunds and weir gates.';
 }
 
-/**
- * Only returns a TyphoonBulletin when real track coordinates (>= 2 points) are present
- * from a live response. Never fabricates or defaults to a simulated typhoon.
- */
 function parseLiveBulletinPayload(raw: unknown): TyphoonBulletin | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
@@ -312,6 +311,7 @@ export const BagyoTrackPH: React.FC = () => {
   const [showCone, setShowCone] = useState<boolean>(true);
   const [showSignals, setShowSignals] = useState<boolean>(true);
   const [panelOpen, setPanelOpen] = useState<boolean>(true);
+  const [noStormCardOpen, setNoStormCardOpen] = useState<boolean>(true);
 
   const [isOnline, setIsOnline] = useState<boolean>(
     typeof navigator !== 'undefined' ? navigator.onLine : true
@@ -381,7 +381,6 @@ export const BagyoTrackPH: React.FC = () => {
         }
       }
 
-      // No active storm in live feed -> display empty no-storm state (never fake data)
       localStorage.removeItem(CACHE_KEY);
       setBulletin(EMPTY_NO_STORM_STATE);
       setFeedStatus('NO ACTIVE STORM');
@@ -410,7 +409,6 @@ export const BagyoTrackPH: React.FC = () => {
     return bulletin.points[selectedIndex] ?? bulletin.points[0];
   }, [bulletin.hasActiveStorm, bulletin.points, selectedIndex]);
 
-  // Initialize Leaflet Map with free, no-key OpenStreetMap & Esri World Imagery layers
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -442,7 +440,13 @@ export const BagyoTrackPH: React.FC = () => {
     satelliteLayerRef.current = satelliteLayer;
     overlayGroupRef.current = overlayGroup;
 
+    // Ensure Leaflet recalculates dimensions cleanly on mobile/responsive layout shifts
+    const resizeTimer = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
     return () => {
+      window.clearTimeout(resizeTimer);
       map.remove();
       mapInstanceRef.current = null;
       streetLayerRef.current = null;
@@ -451,7 +455,6 @@ export const BagyoTrackPH: React.FC = () => {
     };
   }, []);
 
-  // Switch between Map (OSM) and Satellite (Esri World Imagery)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const street = streetLayerRef.current;
@@ -467,7 +470,6 @@ export const BagyoTrackPH: React.FC = () => {
     }
   }, [baseLayer]);
 
-  // Render storm overlays only when a verified live storm with points exists
   useEffect(() => {
     const map = mapInstanceRef.current;
     const group = overlayGroupRef.current;
@@ -603,7 +605,7 @@ export const BagyoTrackPH: React.FC = () => {
   }, [activePoint, bulletin, selectedIndex, showCone, showSignals, showWindRadii]);
 
   return (
-    <div className="relative w-full h-[84vh] min-h-[640px] bg-slate-950 text-slate-100 rounded-xl overflow-hidden border border-emerald-800/60 shadow-2xl font-sans flex flex-col">
+    <div className="relative w-full md:h-[84vh] md:min-h-[640px] bg-slate-950 text-slate-100 rounded-xl overflow-hidden border border-emerald-800/60 shadow-2xl font-sans flex flex-col">
       {/* FIRST-USE MANDATORY OFFICIAL GUIDANCE MODAL */}
       {showDisclaimerModal && (
         <div className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -644,11 +646,11 @@ export const BagyoTrackPH: React.FC = () => {
       {/* TOP HEADER BAR */}
       <div className="z-[1000] bg-slate-900/95 border-b border-emerald-900/70 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold">
+          <div className="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold shrink-0">
             🌀
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-base font-bold tracking-tight text-white">BagyoTrack PH</h1>
               <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-medium">
                 AgriIntelPH Decision Module
@@ -767,67 +769,87 @@ export const BagyoTrackPH: React.FC = () => {
         </button>
       </div>
 
-      {/* MAIN INTERACTIVE MAP CANVAS */}
-      <div className="relative flex-1 w-full">
-        <div ref={mapContainerRef} className="w-full h-full z-0" />
+      {/* RESPONSIVE MAP + OVERLAYS CONTAINER */}
+      <div className="relative flex-1 w-full flex flex-col">
+        {/* Explicit mobile height (h-[380px]) + full flex height on desktop (md:h-full) */}
+        <div ref={mapContainerRef} className="w-full h-[380px] sm:h-[440px] md:h-full z-0" />
 
-        {/* WHEN NO LIVE STORM IS ACTIVE: CLEAN NOTICE CARD WITH OFFICIAL LINKS */}
+        {/* NO ACTIVE STORM CARD: Stacked cleanly below map on mobile, floating top-left on desktop */}
         {!bulletin.hasActiveStorm && (
-          <div className="absolute top-4 left-4 z-[900] max-w-md bg-slate-900/95 backdrop-blur-md border border-emerald-700/70 rounded-xl shadow-2xl p-5 text-xs space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="m-3 md:m-0 md:absolute md:top-4 md:left-4 z-[900] md:max-w-md bg-slate-900/95 backdrop-blur-md border border-emerald-700/70 rounded-xl shadow-2xl p-4 text-xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                 Live Cyclone Monitor
               </span>
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-semibold">
-                NO DEFAULT / SIMULATED STORM
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-semibold">
+                  NO DEFAULT / SIMULATED STORM
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setNoStormCardOpen((v) => !v)}
+                  className="md:hidden p-1 rounded bg-slate-800 text-slate-300"
+                  aria-label="Toggle storm monitor notice"
+                >
+                  {noStormCardOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            <h2 className="text-base font-extrabold text-white">
-              No Active Tropical Cyclone Track Reported
-            </h2>
+            {noStormCardOpen && (
+              <>
+                <h2 className="text-base font-extrabold text-white">
+                  No Active Tropical Cyclone Track Reported
+                </h2>
 
-            <p className="text-slate-300 leading-relaxed">
-              No live tropical cyclone track feed is currently active. To prevent any false alarm or
-              misleading guidance, BagyoTrack PH does not display simulated or placeholder storms.
-            </p>
+                <p className="text-slate-300 leading-relaxed">
+                  No live tropical cyclone track feed is currently active. To prevent any false
+                  alarm or misleading guidance, BagyoTrack PH does not display simulated or
+                  placeholder storms.
+                </p>
 
-            <div className="pt-1 flex flex-wrap gap-2">
-              <a
-                href="https://www.pagasa.dost.gov.ph/weather#tropical-cyclone"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition"
-              >
-                <span>DOST-PAGASA Bulletins</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <a
-                href="https://www.jma.go.jp/bosai/map.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold transition"
-              >
-                <span>JMA</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <a
-                href="https://www.metoc.navy.mil/jtwc/jtwc.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold transition"
-              >
-                <span>NOAA / JTWC</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
+                <div className="pt-1 flex flex-wrap gap-2">
+                  <a
+                    href="https://www.pagasa.dost.gov.ph/weather#tropical-cyclone"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition"
+                  >
+                    <span>DOST-PAGASA Bulletins</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://www.jma.go.jp/bosai/map.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold transition"
+                  >
+                    <span>JMA</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://www.metoc.navy.mil/jtwc/jtwc.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold transition"
+                  >
+                    <span>NOAA / JTWC</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* WHEN A LIVE STORM IS ACTIVE: LEFT DETAILS PANEL & TIMELINE */}
+        {/* ACTIVE STORM DETAILS & TIMELINE */}
         {bulletin.hasActiveStorm && activePoint && (
           <>
-            <div className="absolute top-3 left-3 z-[900] w-80 max-w-[calc(100vw-1.5rem)] bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden">
+            <div className="m-3 md:m-0 md:absolute md:top-3 md:left-3 z-[900] md:w-80 bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden">
               <div className="px-4 py-3 bg-gradient-to-r from-emerald-950 to-slate-900 border-b border-slate-700 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
@@ -930,7 +952,7 @@ export const BagyoTrackPH: React.FC = () => {
               )}
             </div>
 
-            <div className="absolute bottom-3 left-3 right-3 z-[900] bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl px-4 py-3 shadow-2xl">
+            <div className="mx-3 mb-3 md:m-0 md:absolute md:bottom-3 md:left-3 md:right-3 z-[900] bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl px-4 py-3 shadow-2xl">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -966,11 +988,11 @@ export const BagyoTrackPH: React.FC = () => {
           </>
         )}
 
-        {/* MAP ATTRIBUTION & DATA SOURCES OVERLAY IN PICTURE */}
+        {/* MAP ATTRIBUTION & DATA SOURCES OVERLAY: Non-overlapping on mobile, bottom-left on desktop */}
         <div
-          className={`absolute ${
-            bulletin.hasActiveStorm ? 'bottom-24' : 'bottom-3'
-          } left-3 z-[900] bg-slate-950/90 backdrop-blur-md border border-emerald-700/60 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 shadow-lg flex items-center gap-2`}
+          className={`mx-3 mb-3 md:m-0 md:absolute ${
+            bulletin.hasActiveStorm ? 'md:bottom-24' : 'md:bottom-3'
+          } md:left-3 z-[900] bg-slate-950/90 backdrop-blur-md border border-emerald-700/60 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 shadow-lg flex items-center gap-2`}
         >
           <Database className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <span>
